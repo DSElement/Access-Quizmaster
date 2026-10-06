@@ -1,0 +1,19 @@
+# Build and editor output
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+compose.override.yaml
+compose.override.yml
+
+# Runtime data stays in Docker volumes
+qdrant_storage/
+ollama_data/
+*.log

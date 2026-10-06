@@ -1,0 +1,14 @@
+.git/
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+.env
+.env.*
+compose*.yaml
+compose*.yml
+qdrant_storage/
+ollama_data/
+*.log
