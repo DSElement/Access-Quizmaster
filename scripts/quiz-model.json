@@ -1,0 +1,8 @@
+{
+  "model": "quizmaster-qwen",
+  "from": "qwen3:4b-instruct-2507-q4_K_M",
+  "parameters": {
+    "num_ctx": 16384
+  },
+  "stream": false
+}

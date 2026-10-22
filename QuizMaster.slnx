@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/QuizMaster.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/QuizMaster.Tests/QuizMaster.Tests.csproj" />
+  </Folder>
+  <Project Path="AccessRag.csproj" />
+</Solution>

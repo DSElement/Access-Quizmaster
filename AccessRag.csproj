@@ -19,6 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="backend\**;frontend\**;tests\**;.cache\**" />
+    <None Remove="backend\**;frontend\**;tests\**;.cache\**" />
     <Content Include="Docs\**\*.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

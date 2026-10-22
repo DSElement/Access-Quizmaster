@@ -5,6 +5,9 @@ obj/
 .idea/
 *.user
 *.suo
+.DS_Store
+Thumbs.db
+desktop.ini
 
 # Local configuration and secrets
 .env
@@ -12,8 +15,36 @@ obj/
 !.env.example
 compose.override.yaml
 compose.override.yml
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+secrets.json
+*.pfx
+*.p12
+*.pem
+*.key
 
 # Runtime data stays in Docker volumes
 qdrant_storage/
 ollama_data/
 *.log
+*.mdf
+*.ndf
+*.ldf
+*.db
+*.db-shm
+*.db-wal
+*.bak
+
+# Web app and verification output
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+.cache/
+*.tsbuildinfo
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
