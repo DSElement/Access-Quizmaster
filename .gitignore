@@ -1,0 +1,36 @@
+# --- .NET build output ---
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+.vs/
+.idea/
+
+# --- Node / frontend ---
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# --- Secrets and local config (never commit these) ---
+# Backend secrets live in `dotnet user-secrets` (outside the repo).
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+*.pfx
+*.pem
+*.key
+
+# --- Runtime data ---
+# Uploaded documents are stored here in development.
+backend/QuizMaster.Api/App_Data/
+*.log
+
+# --- OS / editor noise ---
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,22 @@
+name: quizmaster
+
+services:
+  db:
+    # PostgreSQL 18 with the pgvector extension preinstalled
+    image: pgvector/pgvector:0.8.7-pg18
+    environment:
+      POSTGRES_DB: quizmaster
+      POSTGRES_USER: quizmaster
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-quizmaster_dev}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quizmaster -d quizmaster"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db_data:
