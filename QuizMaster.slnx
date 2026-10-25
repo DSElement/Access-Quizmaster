@@ -1,2 +1,5 @@
 <Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/QuizMaster.Api/QuizMaster.Api.csproj" />
+  </Folder>
 </Solution>

@@ -1,0 +1,10 @@
+@api = http://localhost:5080
+
+### Health (also checks the database connection)
+GET {{api}}/api/health
+
+### All quizzes visible to anonymous users
+GET {{api}}/api/quizzes
+
+### One quiz with its questions (paste an id from the list above)
+GET {{api}}/api/quizzes/01a17027-f078-7c7b-b3e5-57c4bd9c5b99
