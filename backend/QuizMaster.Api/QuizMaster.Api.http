@@ -8,3 +8,32 @@ GET {{api}}/api/quizzes
 
 ### One quiz with its questions (paste an id from the list above)
 GET {{api}}/api/quizzes/01a17027-f078-7c7b-b3e5-57c4bd9c5b99
+
+
+### Register (also signs you in)
+POST {{api}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "student@test.com",
+  "displayName": "Student",
+  "password": "Passw0rd!x"
+}
+
+### Log in
+POST {{api}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "student@test.com",
+  "password": "Passw0rd!x"
+}
+
+### Who am I? (401 when signed out)
+GET {{api}}/api/auth/me
+
+### Admin only (403 for normal users)
+GET {{api}}/api/admin/users
+
+### Log out
+POST {{api}}/api/auth/logout

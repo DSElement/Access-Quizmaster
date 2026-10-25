@@ -1,6 +1,10 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using QuizMaster.Api.Auth;
 using QuizMaster.Api.Data;
+using QuizMaster.Api.Models;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,7 +12,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-// Errors are returned as RFC 9457 "Problem Details" JSON instead of HTML or empty bodies.
 builder.Services.AddProblemDetails();
 
 builder.Services.AddOpenApi();
@@ -21,25 +24,73 @@ builder.Services.AddDbContext<AppDbContext>(options => options
     .UseNpgsql(connectionString, npgsql => npgsql.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery))
     // `CreatedAt` => `created_at`
     .UseSnakeCaseNamingConvention()
-    // Runs when migrations are applied
     .UseSeeding((context, _) => SeedData.Seed((AppDbContext)context))
     .UseAsyncSeeding((context, _, cancellationToken) => SeedData.SeedAsync((AppDbContext)context, cancellationToken)));
 
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database");
 
+builder.Services
+    .AddIdentityCore<AppUser>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
+        options.Password.RequiredLength = 8;
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    })
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddSignInManager();
+
+builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
+    .AddIdentityCookies();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.Name = "QuizMaster.Auth";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest            // local dev runs on plain http
+        : CookieSecurePolicy.Always;                  // production: HTTPS only
+    options.ExpireTimeSpan = TimeSpan.FromDays(7);
+    options.SlidingExpiration = true;
+
+    options.Events.OnRedirectToLogin = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    };
+});
+
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(Policies.AdminOnly, policy => policy.RequireRole(Roles.Admin))
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build());
+
 var app = builder.Build();
+
+await IdentitySeeder.SeedAsync(app.Services);
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();               // the machine-readable API description: /openapi/v1.json
-    app.MapScalarApiReference();    // an interactive UI on top of it: /scalar
+    app.MapOpenApi().AllowAnonymous();
+    app.MapScalarApiReference().AllowAnonymous();
 }
 
 app.MapControllers();
-app.MapHealthChecks("/api/health");
+app.MapHealthChecks("/api/health").AllowAnonymous();
 
 app.Run();
 

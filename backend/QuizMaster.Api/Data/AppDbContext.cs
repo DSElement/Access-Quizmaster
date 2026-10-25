@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using QuizMaster.Api.Models;
 
 namespace QuizMaster.Api.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<AppUser>(options)
 {
     public DbSet<Quiz> Quizzes => Set<Quiz>();
     public DbSet<Question> Questions => Set<Question>();
@@ -11,6 +13,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Configures all the Identity tables.
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<AppUser>(user => user.Property(u => u.DisplayName).HasMaxLength(100));
+
+        modelBuilder.Entity<AppUser>().ToTable("users");
+        modelBuilder.Entity<IdentityRole>().ToTable("roles");
+        modelBuilder.Entity<IdentityUserRole<string>>().ToTable("user_roles");
+        modelBuilder.Entity<IdentityUserClaim<string>>().ToTable("user_claims");
+        modelBuilder.Entity<IdentityUserLogin<string>>().ToTable("user_logins");
+        modelBuilder.Entity<IdentityUserToken<string>>().ToTable("user_tokens");
+        modelBuilder.Entity<IdentityRoleClaim<string>>().ToTable("role_claims");
+
         // Enables pgvector
         modelBuilder.HasPostgresExtension("vector");
 
@@ -22,15 +37,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             quiz.Property(q => q.Visibility).HasConversion<string>().HasMaxLength(20);
             quiz.HasIndex(q => q.Visibility);
 
-            quiz.Property(q => q.OwnerId).HasMaxLength(450);
+            quiz.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(q => q.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
             quiz.HasIndex(q => q.OwnerId);
 
-            // Official quizzes have no owner
             quiz.ToTable(t => t.HasCheckConstraint(
                 "ck_quizzes_owner_matches_visibility",
                 "(visibility = 'Official') = (owner_id IS NULL)"));
 
-            // Deleting a quiz deletes its questions (and, below, their options).
             quiz.HasMany(q => q.Questions)
                 .WithOne(q => q.Quiz)
                 .HasForeignKey(q => q.QuizId)
@@ -55,8 +71,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         });
     }
 
-    // Every save goes through these two methods, so timestamps are set in one place
-    // instead of in every controller.
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         SetTimestamps();
