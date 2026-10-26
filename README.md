@@ -6,7 +6,7 @@ A full-stack quiz platform. Users take official quizzes, write their own, share 
 
 | Layer | Tools |
 |---|---|
-| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query |
+| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, React Hook Form + Zod, CSS Modules |
 | Backend | ASP.NET Core 10 Web API, ASP.NET Core Identity |
 | Database | PostgreSQL 18 + pgvector, EF Core 10 (Npgsql) |
 | AI | Gemini through Microsoft.Extensions.AI |
@@ -37,6 +37,25 @@ dotnet run --project backend/QuizMaster.Api
 ```
 
 The API runs at <http://localhost:5080>. Interactive API docs are at <http://localhost:5080/scalar> (development only).
+
+In a second terminal, start the frontend:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open <http://localhost:5173>. The Vite dev server forwards every `/api` request to the API on port 5080, so the browser only ever talks to one address and the auth cookie works without any CORS setup.
+
+| Page | Address |
+|---|---|
+| Official and your own quizzes | `/quizzes`, `/quizzes?tab=mine` |
+| Community (shared quizzes) | `/community` |
+| Quiz details, play, edit | `/quizzes/{id}`, `/quizzes/{id}/play`, `/quizzes/{id}/edit` |
+| Write a quiz (admins: `?official=true`) | `/quizzes/new` |
+| Your results | `/attempts`, `/attempts/{id}` |
+| Manage users (admin) | `/admin/users` |
 
 On startup the API creates the `Admin` and `User` roles and, if it doesn't exist yet, the admin account `admin@quizmaster.local` (configured in `appsettings.Development.json`). Passwords need at least 8 characters with an uppercase letter, a lowercase letter, a digit and a symbol. Changing the secret later does not change an existing admin's password.
 
@@ -105,6 +124,9 @@ dotnet ef database update --project backend/QuizMaster.Api
 | Stop database (keeps data) | `docker compose down` |
 | Delete database data | `docker compose down -v` |
 | Open a SQL shell | `docker compose exec db psql -U quizmaster -d quizmaster` |
+| Run the frontend (from `frontend/`) | `npm run dev` |
+| Type-check and build the frontend | `npm run build` |
+| Lint the frontend | `npm run lint` |
 
 ## Project layout
 
@@ -120,4 +142,13 @@ backend/QuizMaster.Api/
   Contracts/                  Request/response shapes sent over HTTP
   Controllers/                API endpoints
   Services/                   Quiz validation and grading
+frontend/
+  vite.config.ts              Dev server and the /api proxy
+  src/main.tsx                Entry point: TanStack Query and the router
+  src/router.tsx              All routes
+  src/api/                    fetch wrapper, shared types, query client
+  src/components/             Layout, form fields, quiz cards and other shared pieces
+  src/features/               Pages and API calls, grouped by feature (auth, quizzes, attempts, admin)
+  src/lib/                    Small helpers (date formatting)
+  src/routes/                 Not-found and error pages
 ```

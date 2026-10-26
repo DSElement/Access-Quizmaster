@@ -1,0 +1,22 @@
+.loading {
+  color: var(--muted);
+}
+
+.error {
+  padding: 10px 14px;
+  border-left: 3px solid var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.empty {
+  padding: 32px 24px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  text-align: center;
+}
+
+.empty p {
+  margin: 0 0 12px;
+}

@@ -1,0 +1,168 @@
+.form {
+  display: grid;
+  gap: 20px;
+}
+
+.details {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.questions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.question {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--text);
+  border-radius: var(--radius);
+}
+
+.questionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.number {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.questionTools {
+  display: flex;
+  gap: 6px;
+}
+
+.questionTools button {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+.options {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.optionsLegend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.correctRadio {
+  width: 18px;
+  height: 18px;
+  margin: 11px 0 0;
+  flex: none;
+  accent-color: var(--correct);
+  cursor: pointer;
+}
+
+.optionInput {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.optionText {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.optionText[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.option[data-correct] .optionText {
+  border-color: var(--correct);
+  background: var(--correct-soft);
+}
+
+.correctTag {
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--correct);
+}
+
+.removeOption {
+  padding: 6px 10px;
+  line-height: 1;
+}
+
+.addOption {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 4px 12px;
+  font-size: 0.9rem;
+}
+
+.addQuestion {
+  justify-self: start;
+}
+
+.error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.count {
+  margin-right: auto;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.serverError {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}

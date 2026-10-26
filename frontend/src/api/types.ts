@@ -1,0 +1,71 @@
+export const ADMIN_ROLE = 'Admin'
+
+export type Me = {
+  id: string
+  email: string
+  displayName: string
+  roles: string[]
+}
+
+export type AdminUser = Me
+
+export type QuizVisibility = 'Official' | 'Private' | 'Public'
+
+export type QuizScope = 'official' | 'mine' | 'community'
+
+export type QuizSummary = {
+  id: string
+  title: string
+  description: string | null
+  visibility: QuizVisibility
+  authorName: string | null
+  questionCount: number
+  createdAt: string
+  updatedAt: string
+  canEdit: boolean
+  canDelete: boolean
+  canPublish: boolean
+}
+
+export type PlayQuiz = {
+  id: string
+  title: string
+  questions: { id: string; text: string; options: { id: string; text: string }[] }[]
+}
+
+export type EditableQuiz = {
+  id: string
+  title: string
+  description: string | null
+  visibility: QuizVisibility
+  questions: { id: string; text: string; options: { id: string; text: string; isCorrect: boolean }[] }[]
+}
+
+export type SaveQuizInput = {
+  title: string
+  description: string | null
+  questions: { text: string; options: { text: string; isCorrect: boolean }[] }[]
+}
+
+export type SubmittedAnswer = { questionId: string; selectedOptionId: string | null }
+
+export type AttemptSummary = {
+  id: string
+  quizId: string | null
+  quizTitle: string
+  submittedAt: string
+  correctCount: number
+  totalQuestions: number
+  scorePercentage: number
+}
+
+export type AttemptDetail = AttemptSummary & {
+  answers: {
+    id: string
+    questionText: string
+    options: string[]
+    selectedOptionIndex: number | null
+    correctOptionIndex: number
+    wasCorrect: boolean
+  }[]
+}

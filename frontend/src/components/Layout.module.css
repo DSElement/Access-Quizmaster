@@ -1,0 +1,96 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  border-bottom: 3px double var(--text);
+}
+
+.bar {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 28px;
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.6rem;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.brand em {
+  color: var(--accent);
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  flex: 1;
+}
+
+.navLink {
+  padding: 4px 0;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.navLink:hover {
+  color: var(--text);
+}
+
+.active {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.userName {
+  max-width: 20ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.main {
+  width: 100%;
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 36px 16px 48px;
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .account {
+    margin-left: auto;
+  }
+
+  .userName {
+    display: none;
+  }
+
+  .nav {
+    order: 3;
+    flex-basis: 100%;
+  }
+}

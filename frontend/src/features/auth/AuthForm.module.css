@@ -1,0 +1,36 @@
+.card {
+  max-width: 420px;
+  margin: 32px auto;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.card h1 {
+  margin-top: 0;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.serverError {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.switch {
+  margin-bottom: 0;
+  color: var(--muted);
+}

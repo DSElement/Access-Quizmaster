@@ -2,15 +2,28 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QuizMaster.Api.Contracts;
 
-public record RegisterRequest(
-    [Required, EmailAddress, MaxLength(256)] string Email,
-    [Required, StringLength(100, MinimumLength = 2)] string DisplayName,
-    [Required] string Password);
+public record RegisterRequest
+{
+    [Required, EmailAddress, MaxLength(256)]
+    public string Email { get; init; } = "";
 
-public record LoginRequest(
-    [Required, EmailAddress] string Email,
-    [Required] string Password,
-    bool RememberMe = false);
+    [Required, StringLength(100, MinimumLength = 2)]
+    public string DisplayName { get; init; } = "";
+
+    [Required]
+    public string Password { get; init; } = "";
+}
+
+public record LoginRequest
+{
+    [Required, EmailAddress]
+    public string Email { get; init; } = "";
+
+    [Required]
+    public string Password { get; init; } = "";
+
+    public bool RememberMe { get; init; }
+}
 
 public record MeResponse(string Id, string Email, string DisplayName, IReadOnlyList<string> Roles);
 
