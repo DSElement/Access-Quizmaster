@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.EntityFrameworkCore;
 using QuizMaster.Api.Auth;
 using QuizMaster.Api.Data;
@@ -9,7 +10,9 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+        // Validation errors use the JSON names ("questions[0].text"), not the C# ones ("Questions[0].Text").
+        options.ModelMetadataDetailsProviders.Add(new SystemTextJsonValidationMetadataProvider()))
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddProblemDetails();
@@ -43,6 +46,9 @@ builder.Services
 
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddIdentityCookies();
+
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+    options.ValidationInterval = TimeSpan.FromMinutes(1));
 
 builder.Services.ConfigureApplicationCookie(options =>
 {

@@ -10,10 +10,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<Quiz> Quizzes => Set<Quiz>();
     public DbSet<Question> Questions => Set<Question>();
     public DbSet<AnswerOption> AnswerOptions => Set<AnswerOption>();
+    public DbSet<Attempt> Attempts => Set<Attempt>();
+    public DbSet<AttemptAnswer> AttemptAnswers => Set<AttemptAnswer>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Configures all the Identity tables.
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<AppUser>(user => user.Property(u => u.DisplayName).HasMaxLength(100));
@@ -37,7 +38,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             quiz.Property(q => q.Visibility).HasConversion<string>().HasMaxLength(20);
             quiz.HasIndex(q => q.Visibility);
 
-            quiz.HasOne<AppUser>()
+            quiz.HasOne(q => q.Owner)
                 .WithMany()
                 .HasForeignKey(q => q.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -68,6 +69,33 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         {
             option.Property(o => o.Text).HasMaxLength(300);
             option.HasIndex(o => new { o.QuestionId, o.Position });
+        });
+
+        modelBuilder.Entity<Attempt>(attempt =>
+        {
+            attempt.Property(a => a.QuizTitle).HasMaxLength(200);
+
+            attempt.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            attempt.HasIndex(a => new { a.UserId, a.SubmittedAt });
+
+            attempt.HasOne(a => a.Quiz)
+                .WithMany()
+                .HasForeignKey(a => a.QuizId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            attempt.HasMany(a => a.Answers)
+                .WithOne(a => a.Attempt)
+                .HasForeignKey(a => a.AttemptId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AttemptAnswer>(answer =>
+        {
+            answer.Property(a => a.QuestionText).HasMaxLength(500);
+            answer.HasIndex(a => new { a.AttemptId, a.Position });
         });
     }
 

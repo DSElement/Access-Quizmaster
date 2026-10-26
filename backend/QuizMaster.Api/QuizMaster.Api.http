@@ -6,7 +6,10 @@ GET {{api}}/api/health
 ### All quizzes visible to anonymous users
 GET {{api}}/api/quizzes
 
-### One quiz with its questions (paste an id from the list above)
+### Filter by scope: official, mine (signed in) or community
+GET {{api}}/api/quizzes?scope=official
+
+### One quiz's details (paste an id from the list above)
 GET {{api}}/api/quizzes/01a17027-f078-7c7b-b3e5-57c4bd9c5b99
 
 
@@ -35,5 +38,104 @@ GET {{api}}/api/auth/me
 ### Admin only (403 for normal users)
 GET {{api}}/api/admin/users
 
+### Admin: give an account the Admin role (paste an id from the list above)
+POST {{api}}/api/admin/users/00000000-0000-0000-0000-000000000000/promote
+
+### Admin: create an official quiz
+POST {{api}}/api/quizzes/official
+Content-Type: application/json
+
+{
+  "title": "HTTP Basics",
+  "description": "Status codes and methods.",
+  "questions": [
+    {
+      "text": "Which status code means Created?",
+      "options": [
+        { "text": "200", "isCorrect": false },
+        { "text": "201", "isCorrect": true },
+        { "text": "204", "isCorrect": false }
+      ]
+    }
+  ]
+}
+
 ### Log out
 POST {{api}}/api/auth/logout
+
+
+@quizId = 00000000-0000-0000-0000-000000000000
+@attemptId = 00000000-0000-0000-0000-000000000000
+
+### Create a quiz (starts private)
+POST {{api}}/api/quizzes
+Content-Type: application/json
+
+{
+  "title": "My first quiz",
+  "description": "Made from the .http file",
+  "questions": [
+    {
+      "text": "What is 2 + 2?",
+      "options": [
+        { "text": "3", "isCorrect": false },
+        { "text": "4", "isCorrect": true }
+      ]
+    }
+  ]
+}
+
+### Your own quizzes
+GET {{api}}/api/quizzes?scope=mine
+
+### Editor view, including the correct answers (owner or admin)
+GET {{api}}/api/quizzes/{{quizId}}/edit
+
+### Replace the quiz and all its questions
+PUT {{api}}/api/quizzes/{{quizId}}
+Content-Type: application/json
+
+{
+  "title": "My first quiz (edited)",
+  "questions": [
+    {
+      "text": "What is the capital of France?",
+      "options": [
+        { "text": "Paris", "isCorrect": true },
+        { "text": "Rome", "isCorrect": false },
+        { "text": "Madrid", "isCorrect": false }
+      ]
+    }
+  ]
+}
+
+### Share it in the Community feed
+POST {{api}}/api/quizzes/{{quizId}}/publish
+
+### Community feed
+GET {{api}}/api/quizzes?scope=community
+
+### Make it private again
+POST {{api}}/api/quizzes/{{quizId}}/unpublish
+
+### Play: questions and options without the answer key
+GET {{api}}/api/quizzes/{{quizId}}/play
+
+### Submit answers (question and option ids come from the play response)
+POST {{api}}/api/quizzes/{{quizId}}/attempts
+Content-Type: application/json
+
+{
+  "answers": [
+    { "questionId": "00000000-0000-0000-0000-000000000000", "selectedOptionId": "00000000-0000-0000-0000-000000000000" }
+  ]
+}
+
+### Your attempt history
+GET {{api}}/api/attempts
+
+### One attempt with every answer
+GET {{api}}/api/attempts/{{attemptId}}
+
+### Delete the quiz (your attempts stay in the history)
+DELETE {{api}}/api/quizzes/{{quizId}}

@@ -7,18 +7,27 @@ public record QuizSummary(
     string Title,
     string? Description,
     QuizVisibility Visibility,
+    string? AuthorName,
     int QuestionCount,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
+    bool CanEdit,
+    bool CanDelete,
+    bool CanPublish);
 
-public record QuizDetail(
+public record PlayQuiz(Guid Id, string Title, IReadOnlyList<PlayQuestion> Questions);
+
+public record PlayQuestion(Guid Id, string Text, IReadOnlyList<PlayOption> Options);
+
+public record PlayOption(Guid Id, string Text);
+
+public record EditableQuiz(
     Guid Id,
     string Title,
     string? Description,
     QuizVisibility Visibility,
-    DateTime CreatedAt,
-    DateTime UpdatedAt,
-    IReadOnlyList<QuestionDetail> Questions);
+    IReadOnlyList<EditableQuestion> Questions);
 
-public record QuestionDetail(Guid Id, string Text, IReadOnlyList<OptionDetail> Options);
+public record EditableQuestion(Guid Id, string Text, IReadOnlyList<EditableOption> Options);
 
-public record OptionDetail(Guid Id, string Text);
+public record EditableOption(Guid Id, string Text, bool IsCorrect);

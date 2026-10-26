@@ -7,8 +7,8 @@ public class Quiz
     public string? Description { get; set; }
     public QuizVisibility Visibility { get; set; }
 
-    /// <summary>The user who created the quiz. Null for official quizzes.</summary>
     public string? OwnerId { get; set; }
+    public AppUser? Owner { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

@@ -44,6 +44,8 @@ On startup the API creates the `Admin` and `User` roles and, if it doesn't exist
 
 Accounts use ASP.NET Core Identity with cookie authentication. Signing in sets an `HttpOnly`, `SameSite=Strict` cookie that the browser sends with every request; there are no tokens to store in JavaScript. Every endpoint requires a signed-in user unless it is explicitly marked anonymous.
 
+The cookie also carries the user's roles. Once a minute the API checks the cookie against the database and reissues it, so a role change reaches a signed-in user within about a minute without them signing in again.
+
 ## API
 
 | Method | Route | Access | Description |
@@ -53,9 +55,37 @@ Accounts use ASP.NET Core Identity with cookie authentication. Signing in sets a
 | POST | `/api/auth/login` | Anyone | Sign in (sets the auth cookie) |
 | POST | `/api/auth/logout` | Anyone | Sign out (clears the auth cookie) |
 | GET | `/api/auth/me` | Signed in | The current user and their roles |
-| GET | `/api/quizzes` | Anyone | Official and public quizzes, plus your own private ones |
-| GET | `/api/quizzes/{id}` | Anyone | Quiz with its questions and options (no answer key) |
+| GET | `/api/quizzes?scope=` | Anyone | Quizzes you can see; optional `scope` is `official`, `mine` (signed in) or `community` |
+| GET | `/api/quizzes/{id}` | Anyone | Quiz details and what you're allowed to do with it (no questions) |
+| GET | `/api/quizzes/{id}/play` | Signed in | Questions and options to play (no answer key) |
+| GET | `/api/quizzes/{id}/edit` | Owner / admin | Full quiz including the correct answers, for the editor |
+| POST | `/api/quizzes` | Signed in | Create a quiz (starts private) |
+| POST | `/api/quizzes/official` | Admin | Create an official quiz |
+| PUT | `/api/quizzes/{id}` | Owner / admin | Replace the title, description and all questions |
+| DELETE | `/api/quizzes/{id}` | Owner / admin | Delete a quiz (past attempts are kept) |
+| POST | `/api/quizzes/{id}/publish` | Owner | Share the quiz in the Community feed |
+| POST | `/api/quizzes/{id}/unpublish` | Owner | Make the quiz private again |
+| POST | `/api/quizzes/{id}/attempts` | Signed in | Submit answers; the server grades them and saves the attempt |
+| GET | `/api/attempts` | Signed in | Your past attempts, newest first |
+| GET | `/api/attempts/{id}` | Signed in | One of your attempts with every answer |
 | GET | `/api/admin/users` | Admin | All accounts with their roles |
+| POST | `/api/admin/users/{id}/promote` | Admin | Give an account the Admin role |
+
+## Quizzes and permissions
+
+Every quiz is **Official** (maintained by admins, no owner), **Private** (only its owner sees it) or **Public** (shared in the Community feed).
+
+| Action | Who |
+|---|---|
+| See | Everyone sees official and public quizzes; private ones only their owner |
+| Create | Any signed-in user creates private quizzes; admins also create official ones |
+| Edit | The owner; admins for official quizzes |
+| Delete | Whoever can edit; admins can also remove community quizzes |
+| Publish / unpublish | Only the owner |
+
+A quiz you can't see returns `404`, one you can see but not change returns `403`. Answers are graded on the server, and the answer key is only sent to people who can edit the quiz.
+
+Each attempt stores a copy of the questions and options as they were when you played, so editing or deleting the quiz later doesn't change your past results.
 
 ## Database changes
 
@@ -89,4 +119,5 @@ backend/QuizMaster.Api/
   Data/                       AppDbContext, seed data, migrations
   Contracts/                  Request/response shapes sent over HTTP
   Controllers/                API endpoints
+  Services/                   Quiz validation and grading
 ```
