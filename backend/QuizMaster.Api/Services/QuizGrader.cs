@@ -27,9 +27,11 @@ public static class QuizGrader
     public static Attempt Grade(Quiz quiz, IReadOnlyList<SubmittedAnswer> answers, string userId)
     {
         var picks = answers.ToDictionary(a => a.QuestionId, a => a.SelectedOptionId);
+        var playedOrder = answers.Select((a, i) => (a.QuestionId, i)).ToDictionary(x => x.QuestionId, x => x.i);
 
         var snapshots = quiz.Questions
-            .OrderBy(q => q.Position)
+            .OrderBy(q => playedOrder.GetValueOrDefault(q.Id, int.MaxValue))
+            .ThenBy(q => q.Position)
             .Select((question, index) =>
             {
                 var options = question.Options.OrderBy(o => o.Position).ToList();

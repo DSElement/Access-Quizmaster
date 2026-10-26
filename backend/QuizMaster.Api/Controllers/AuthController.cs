@@ -80,6 +80,7 @@ public class AuthController(UserManager<AppUser> userManager, SignInManager<AppU
 
             var field = error.Code.StartsWith("Password") ? "password"
                 : error.Code.Contains("Email") ? "email"
+                : error.Code == UniqueDisplayNameValidator.ErrorCode ? "displayName"
                 : string.Empty;
             ModelState.AddModelError(field, error.Description);
         }

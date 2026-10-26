@@ -17,7 +17,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<AppUser>(user => user.Property(u => u.DisplayName).HasMaxLength(100));
+        modelBuilder.Entity<AppUser>(user =>
+        {
+            user.Property(u => u.DisplayName).HasMaxLength(100);
+            user.Property(u => u.NormalizedDisplayName).HasMaxLength(100);
+            user.HasIndex(u => u.NormalizedDisplayName).IsUnique();
+        });
 
         modelBuilder.Entity<AppUser>().ToTable("users");
         modelBuilder.Entity<IdentityRole>().ToTable("roles");
@@ -102,13 +107,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         SetTimestamps();
+        NormalizeDisplayNames();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         SetTimestamps();
+        NormalizeDisplayNames();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void NormalizeDisplayNames()
+    {
+        foreach (var entry in ChangeTracker.Entries<AppUser>())
+        {
+            if (entry.State is EntityState.Added or EntityState.Modified)
+                entry.Entity.NormalizedDisplayName = AppUser.Normalize(entry.Entity.DisplayName);
+        }
     }
 
     private void SetTimestamps()

@@ -54,3 +54,31 @@
 .actions {
   text-align: right;
 }
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.searchLabel {
+  font-weight: 600;
+}
+
+.searchInput {
+  flex: 1;
+  max-width: 360px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.tableWrap[aria-busy='true'] {
+  opacity: 0.6;
+}
+
+.noMatch {
+  color: var(--muted);
+}

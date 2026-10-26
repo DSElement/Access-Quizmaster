@@ -5,6 +5,7 @@ import type { PlayQuiz } from '../../api/types'
 import { ErrorNote, Loading } from '../../components/LoadState'
 import { PageHeader } from '../../components/PageHeader'
 import { plural } from '../../lib/format'
+import { shuffle } from '../../lib/shuffle'
 import { fetchPlayQuiz, quizKeys } from '../quizzes/api'
 import { attemptKeys, submitAttempt } from './api'
 import styles from './PlayPage.module.css'
@@ -29,16 +30,17 @@ export function PlayPage() {
 function PlayQuizForm({ quiz }: { quiz: PlayQuiz }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [questions] = useState(() => shuffle(quiz.questions))
   const [selected, setSelected] = useState<Record<string, string>>({})
 
-  const answeredCount = quiz.questions.filter((q) => selected[q.id]).length
-  const unanswered = quiz.questions.length - answeredCount
+  const answeredCount = questions.filter((q) => selected[q.id]).length
+  const unanswered = questions.length - answeredCount
 
   const submit = useMutation({
     mutationFn: () =>
       submitAttempt(
         quiz.id,
-        quiz.questions.map((q) => ({ questionId: q.id, selectedOptionId: selected[q.id] ?? null })),
+        questions.map((q) => ({ questionId: q.id, selectedOptionId: selected[q.id] ?? null })),
       ),
     onSuccess: (attempt) => {
       void queryClient.invalidateQueries({ queryKey: attemptKeys.list })
@@ -48,7 +50,7 @@ function PlayQuizForm({ quiz }: { quiz: PlayQuiz }) {
 
   return (
     <section>
-      <PageHeader eyebrow="Playing" title={quiz.title} lead={`${plural(quiz.questions.length, 'question')}. Pick one answer for each.`} />
+      <PageHeader eyebrow="Playing" title={quiz.title} lead={`${plural(questions.length, 'question')} in random order. Pick one answer for each.`} />
 
       <form
         onSubmit={(event) => {
@@ -57,7 +59,7 @@ function PlayQuizForm({ quiz }: { quiz: PlayQuiz }) {
         }}
       >
         <ol className={styles.questions}>
-          {quiz.questions.map((question, index) => (
+          {questions.map((question, index) => (
             <li key={question.id}>
               <fieldset className={styles.question}>
                 <legend className={styles.legend}>
@@ -96,7 +98,7 @@ function PlayQuizForm({ quiz }: { quiz: PlayQuiz }) {
             </div>
           )}
           <span className={styles.progress} aria-live="polite">
-            {answeredCount} of {quiz.questions.length} answered
+            {answeredCount} of {questions.length} answered
             {unanswered > 0 && <span className={styles.hint}> · unanswered questions count as wrong</span>}
           </span>
           <Link to={`/quizzes/${quiz.id}`} className="button secondary">

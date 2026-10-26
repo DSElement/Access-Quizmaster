@@ -38,6 +38,9 @@ GET {{api}}/api/auth/me
 ### Admin only (403 for normal users)
 GET {{api}}/api/admin/users
 
+### Admin: search accounts by display name or email
+GET {{api}}/api/admin/users?search=stud
+
 ### Admin: give an account the Admin role (paste an id from the list above)
 POST {{api}}/api/admin/users/00000000-0000-0000-0000-000000000000/promote
 

@@ -260,6 +260,12 @@ namespace QuizMaster.Api.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lockout_end");
 
+                    b.Property<string>("NormalizedDisplayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("normalized_display_name");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
@@ -297,6 +303,10 @@ namespace QuizMaster.Api.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_users");
+
+                    b.HasIndex("NormalizedDisplayName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_users_normalized_display_name");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");

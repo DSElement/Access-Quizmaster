@@ -63,6 +63,8 @@ On startup the API creates the `Admin` and `User` roles and, if it doesn't exist
 
 Accounts use ASP.NET Core Identity with cookie authentication. Signing in sets an `HttpOnly`, `SameSite=Strict` cookie that the browser sends with every request; there are no tokens to store in JavaScript. Every endpoint requires a signed-in user unless it is explicitly marked anonymous.
 
+Display names are unique, ignoring upper/lower case and surrounding spaces (like emails, a normalized copy is stored with a unique index).
+
 The cookie also carries the user's roles. Once a minute the API checks the cookie against the database and reissues it, so a role change reaches a signed-in user within about a minute without them signing in again.
 
 ## API
@@ -76,7 +78,7 @@ The cookie also carries the user's roles. Once a minute the API checks the cooki
 | GET | `/api/auth/me` | Signed in | The current user and their roles |
 | GET | `/api/quizzes?scope=` | Anyone | Quizzes you can see; optional `scope` is `official`, `mine` (signed in) or `community` |
 | GET | `/api/quizzes/{id}` | Anyone | Quiz details and what you're allowed to do with it (no questions) |
-| GET | `/api/quizzes/{id}/play` | Signed in | Questions and options to play (no answer key) |
+| GET | `/api/quizzes/{id}/play` | Signed in | Questions and options to play (no answer key); the frontend shuffles the question order |
 | GET | `/api/quizzes/{id}/edit` | Owner / admin | Full quiz including the correct answers, for the editor |
 | POST | `/api/quizzes` | Signed in | Create a quiz (starts private) |
 | POST | `/api/quizzes/official` | Admin | Create an official quiz |
@@ -84,10 +86,10 @@ The cookie also carries the user's roles. Once a minute the API checks the cooki
 | DELETE | `/api/quizzes/{id}` | Owner / admin | Delete a quiz (past attempts are kept) |
 | POST | `/api/quizzes/{id}/publish` | Owner | Share the quiz in the Community feed |
 | POST | `/api/quizzes/{id}/unpublish` | Owner | Make the quiz private again |
-| POST | `/api/quizzes/{id}/attempts` | Signed in | Submit answers; the server grades them and saves the attempt |
+| POST | `/api/quizzes/{id}/attempts` | Signed in | Submit answers in the order they were shown; the server grades them and saves the attempt in that order |
 | GET | `/api/attempts` | Signed in | Your past attempts, newest first |
 | GET | `/api/attempts/{id}` | Signed in | One of your attempts with every answer |
-| GET | `/api/admin/users` | Admin | All accounts with their roles |
+| GET | `/api/admin/users?search=` | Admin | Accounts with their roles; optional `search` matches display name or email |
 | POST | `/api/admin/users/{id}/promote` | Admin | Give an account the Admin role |
 
 ## Quizzes and permissions

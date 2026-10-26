@@ -15,11 +15,19 @@ namespace QuizMaster.Api.Controllers;
 public class AdminController(AppDbContext db, UserManager<AppUser> userManager) : ControllerBase
 {
     [HttpGet("users")]
-    public async Task<ActionResult<List<AdminUserSummary>>> Users(CancellationToken cancellationToken)
+    public async Task<ActionResult<List<AdminUserSummary>>> Users(
+        [FromQuery] string? search, CancellationToken cancellationToken)
     {
+        var query = db.Users.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = AppUser.Normalize(search);
+            query = query.Where(u => u.NormalizedDisplayName.Contains(term) || u.NormalizedEmail!.Contains(term));
+        }
+
         // Users, UserRoles and Roles are DbSets that IdentityDbContext gives us.
-        var users = await db.Users
-            .OrderBy(u => u.Email)
+        var users = await query
+            .OrderBy(u => u.DisplayName)
             .Select(u => new AdminUserSummary(
                 u.Id,
                 u.Email!,

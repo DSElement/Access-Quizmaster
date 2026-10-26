@@ -41,6 +41,7 @@ builder.Services
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
     })
     .AddRoles<IdentityRole>()
+    .AddUserValidator<UniqueDisplayNameValidator>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddSignInManager();
 
