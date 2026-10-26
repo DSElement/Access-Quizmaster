@@ -23,10 +23,6 @@
   font-weight: 600;
 }
 
-.indexing {
-  color: var(--muted);
-}
-
 .failed {
   padding: 10px 14px;
   border-left: 3px solid var(--danger);
@@ -54,13 +50,33 @@
   gap: 8px;
 }
 
-.searchInput {
-  flex: 1 1 280px;
+.input {
   min-width: 0;
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
+}
+
+.grow {
+  flex: 1 1 260px;
+}
+
+.generateForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .summary {

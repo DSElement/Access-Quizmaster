@@ -3,10 +3,6 @@ using QuizMaster.Api.Models;
 
 namespace QuizMaster.Api.Data;
 
-/// <summary>
-/// Inserts the official quizzes into an empty database. Runs automatically
-/// when migrations are applied (see UseSeeding in Program.cs).
-/// </summary>
 public static class SeedData
 {
     public static void Seed(AppDbContext db)

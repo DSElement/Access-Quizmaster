@@ -81,7 +81,6 @@ public class AuthController(UserManager<AppUser> userManager, SignInManager<AppU
     {
         foreach (var error in result.Errors)
         {
-            // UserName is the email here, so this duplicates DuplicateEmail.
             if (error.Code == nameof(IdentityErrorDescriber.DuplicateUserName)) continue;
 
             var field = error.Code.StartsWith("Password") ? "password"

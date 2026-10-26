@@ -156,3 +156,9 @@
   font-size: 0.9rem;
   color: var(--accent);
 }
+
+/* Keeps line breaks and indentation, for questions that contain code. */
+.questionText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

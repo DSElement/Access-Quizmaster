@@ -534,6 +534,10 @@ namespace QuizMaster.Api.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("quiz_id");
 
+                    b.Property<Guid?>("SourceChunkId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_chunk_id");
+
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -542,6 +546,9 @@ namespace QuizMaster.Api.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_questions");
+
+                    b.HasIndex("SourceChunkId")
+                        .HasDatabaseName("ix_questions_source_chunk_id");
 
                     b.HasIndex("QuizId", "Position")
                         .HasDatabaseName("ix_questions_quiz_id_position");
@@ -569,6 +576,10 @@ namespace QuizMaster.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("owner_id");
 
+                    b.Property<Guid?>("SourceDocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_document_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -590,6 +601,9 @@ namespace QuizMaster.Api.Data.Migrations
 
                     b.HasIndex("OwnerId")
                         .HasDatabaseName("ix_quizzes_owner_id");
+
+                    b.HasIndex("SourceDocumentId")
+                        .HasDatabaseName("ix_quizzes_source_document_id");
 
                     b.HasIndex("Visibility")
                         .HasDatabaseName("ix_quizzes_visibility");
@@ -730,7 +744,15 @@ namespace QuizMaster.Api.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_questions_quizzes_quiz_id");
 
+                    b.HasOne("QuizMaster.Api.Models.DocumentChunk", "SourceChunk")
+                        .WithMany()
+                        .HasForeignKey("SourceChunkId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_questions_document_chunks_source_chunk_id");
+
                     b.Navigation("Quiz");
+
+                    b.Navigation("SourceChunk");
                 });
 
             modelBuilder.Entity("QuizMaster.Api.Models.Quiz", b =>
@@ -741,7 +763,15 @@ namespace QuizMaster.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("fk_quizzes_users_owner_id");
 
+                    b.HasOne("QuizMaster.Api.Models.Document", "SourceDocument")
+                        .WithMany()
+                        .HasForeignKey("SourceDocumentId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_quizzes_documents_source_document_id");
+
                     b.Navigation("Owner");
+
+                    b.Navigation("SourceDocument");
                 });
 
             modelBuilder.Entity("QuizMaster.Api.Models.Attempt", b =>

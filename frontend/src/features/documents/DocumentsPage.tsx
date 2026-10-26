@@ -15,6 +15,7 @@ import {
   uploadDocument,
 } from './api'
 import styles from './DocumentsPage.module.css'
+import { IndexingStatus } from './IndexingStatus'
 
 export function DocumentsPage() {
   const documents = useQuery({
@@ -53,6 +54,11 @@ export function DocumentsPage() {
                 </span>
                 {document.status === 'Failed' && document.error && (
                   <span className={styles.error}>{document.error}</span>
+                )}
+                {isIndexing(document) && (
+                  <div className={styles.progress}>
+                    <IndexingStatus document={document} />
+                  </div>
                 )}
               </Link>
             </li>

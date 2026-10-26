@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QuizMaster.Api.Contracts;
 
-// A missing question or a null SelectedOptionId counts as unanswered.
 public record SubmitAttemptRequest
 {
     [Required]
@@ -30,7 +29,6 @@ public record AttemptDetail(
     double ScorePercentage,
     IReadOnlyList<AttemptAnswerDetail> Answers);
 
-// No correct option: the answer key isn't sent to players, even after they submit.
 public record AttemptAnswerDetail(
     Guid Id,
     string QuestionText,

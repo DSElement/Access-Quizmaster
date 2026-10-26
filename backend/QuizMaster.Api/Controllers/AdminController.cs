@@ -25,7 +25,6 @@ public class AdminController(AppDbContext db, UserManager<AppUser> userManager) 
             query = query.Where(u => u.NormalizedDisplayName.Contains(term) || u.NormalizedEmail!.Contains(term));
         }
 
-        // Users, UserRoles and Roles are DbSets that IdentityDbContext gives us.
         var users = await query
             .OrderBy(u => u.DisplayName)
             .Select(u => new AdminUserSummary(

@@ -34,7 +34,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         modelBuilder.Entity<IdentityUserToken<string>>().ToTable("user_tokens");
         modelBuilder.Entity<IdentityRoleClaim<string>>().ToTable("role_claims");
 
-        // Enables pgvector
         modelBuilder.HasPostgresExtension("vector");
 
         modelBuilder.Entity<Quiz>(quiz =>
@@ -59,6 +58,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
                 .WithOne(q => q.Quiz)
                 .HasForeignKey(q => q.QuizId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            quiz.HasOne(q => q.SourceDocument)
+                .WithMany()
+                .HasForeignKey(q => q.SourceDocumentId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Question>(question =>
@@ -70,6 +74,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
                 .WithOne(o => o.Question)
                 .HasForeignKey(o => o.QuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            question.HasOne(q => q.SourceChunk)
+                .WithMany()
+                .HasForeignKey(q => q.SourceChunkId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<AnswerOption>(option =>

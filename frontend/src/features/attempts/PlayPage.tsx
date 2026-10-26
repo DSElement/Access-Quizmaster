@@ -64,7 +64,7 @@ function PlayQuizForm({ quiz }: { quiz: PlayQuiz }) {
               <fieldset className={styles.question}>
                 <legend className={styles.legend}>
                   <span className={styles.number}>Q{index + 1}</span>
-                  <span>{question.text}</span>
+                  <span className={styles.questionText}>{question.text}</span>
                 </legend>
                 <div className={styles.options}>
                   {question.options.map((option) => (

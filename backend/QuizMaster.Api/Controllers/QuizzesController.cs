@@ -103,6 +103,8 @@ public class QuizzesController(AppDbContext db) : ControllerBase
         if (quiz is null) return NotFound();
         if (!User.CanEditQuiz(quiz.OwnerId, quiz.Visibility)) return Forbid();
         if (ValidationErrors(request) is { } invalid) return invalid;
+        if (await SourceErrorsAsync(quiz.SourceDocumentId, request, mustOwnDocument: false, cancellationToken) is { } badSource)
+            return badSource;
 
         quiz.Title = request.Title.Trim();
         quiz.Description = CleanDescription(request.Description);
@@ -156,6 +158,8 @@ public class QuizzesController(AppDbContext db) : ControllerBase
         SaveQuizRequest request, QuizVisibility visibility, string? ownerId, CancellationToken cancellationToken)
     {
         if (ValidationErrors(request) is { } invalid) return invalid;
+        if (await SourceErrorsAsync(request.SourceDocumentId, request, mustOwnDocument: true, cancellationToken) is { } badSource)
+            return badSource;
 
         var quiz = new Quiz
         {
@@ -163,6 +167,7 @@ public class QuizzesController(AppDbContext db) : ControllerBase
             Description = CleanDescription(request.Description),
             Visibility = visibility,
             OwnerId = ownerId,
+            SourceDocumentId = request.SourceDocumentId,
             Questions = ToQuestions(request),
         };
 
@@ -206,6 +211,38 @@ public class QuizzesController(AppDbContext db) : ControllerBase
         return ValidationProblem(ModelState);
     }
 
+    private async Task<ActionResult?> SourceErrorsAsync(
+        Guid? documentId, SaveQuizRequest request, bool mustOwnDocument, CancellationToken cancellationToken)
+    {
+        var chunkIds = request.Questions.Select(q => q.SourceChunkId).OfType<Guid>().Distinct().ToList();
+
+        if (documentId is null)
+        {
+            if (chunkIds.Count == 0) return null;
+            ModelState.AddModelError("questions", "Questions can only cite passages of the quiz's source document.");
+            return ValidationProblem(ModelState);
+        }
+
+        if (mustOwnDocument)
+        {
+            var userId = User.RequireUserId();
+            var ownsDocument = await db.Documents.AnyAsync(
+                d => d.Id == documentId && d.OwnerId == userId && d.Status == DocumentStatus.Ready, cancellationToken);
+            if (!ownsDocument)
+            {
+                ModelState.AddModelError("sourceDocumentId", "The source document doesn't exist or isn't yours.");
+                return ValidationProblem(ModelState);
+            }
+        }
+
+        var found = await db.DocumentChunks.CountAsync(
+            c => c.DocumentId == documentId && chunkIds.Contains(c.Id), cancellationToken);
+        if (found == chunkIds.Count) return null;
+
+        ModelState.AddModelError("questions", "A question cites a passage that isn't part of the source document.");
+        return ValidationProblem(ModelState);
+    }
+
     private static string? CleanDescription(string? description) =>
         string.IsNullOrWhiteSpace(description) ? null : description.Trim();
 
@@ -215,6 +252,7 @@ public class QuizzesController(AppDbContext db) : ControllerBase
             {
                 Position = i,
                 Text = question.Text.Trim(),
+                SourceChunkId = question.SourceChunkId,
                 Options = question.Options
                     .Select((option, j) => new AnswerOption
                     {
@@ -231,11 +269,13 @@ public class QuizzesController(AppDbContext db) : ControllerBase
         quiz.Title,
         quiz.Description,
         quiz.Visibility,
+        quiz.SourceDocumentId,
         quiz.Questions
             .OrderBy(q => q.Position)
             .Select(q => new EditableQuestion(
                 q.Id,
                 q.Text,
+                q.SourceChunkId,
                 q.Options
                     .OrderBy(o => o.Position)
                     .Select(o => new EditableOption(o.Id, o.Text, o.IsCorrect))

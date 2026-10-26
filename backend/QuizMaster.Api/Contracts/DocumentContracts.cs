@@ -1,4 +1,5 @@
 using QuizMaster.Api.Models;
+using QuizMaster.Api.Services.Documents;
 
 namespace QuizMaster.Api.Contracts;
 
@@ -11,6 +12,7 @@ public record DocumentSummary(
     string? Error,
     int ChunkCount,
     DateTime UploadedAt,
-    DateTime? ProcessedAt);
+    DateTime? ProcessedAt,
+    IndexingStep? Progress);
 
 public record DocumentChunkView(Guid Id, int Index, string Text);

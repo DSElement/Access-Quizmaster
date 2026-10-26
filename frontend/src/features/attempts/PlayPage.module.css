@@ -107,3 +107,9 @@
 .submitError p {
   margin: 0;
 }
+
+/* Keeps line breaks and indentation, for questions that contain code. */
+.questionText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

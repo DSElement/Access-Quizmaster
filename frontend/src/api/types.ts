@@ -38,13 +38,29 @@ export type EditableQuiz = {
   title: string
   description: string | null
   visibility: QuizVisibility
-  questions: { id: string; text: string; options: { id: string; text: string; isCorrect: boolean }[] }[]
+  sourceDocumentId: string | null
+  questions: {
+    id: string
+    text: string
+    sourceChunkId: string | null
+    options: { id: string; text: string; isCorrect: boolean }[]
+  }[]
 }
 
 export type SaveQuizInput = {
   title: string
   description: string | null
-  questions: { text: string; options: { text: string; isCorrect: boolean }[] }[]
+  sourceDocumentId?: string | null
+  questions: { text: string; sourceChunkId?: string | null; options: { text: string; isCorrect: boolean }[] }[]
+}
+
+// A generated quiz that isn't saved yet; it opens in the quiz builder for review.
+export type QuizDraft = {
+  title: string
+  description: string | null
+  sourceDocumentId: string
+  sourceDocumentName: string
+  questions: { text: string; sourceChunkId: string; options: { text: string; isCorrect: boolean }[] }[]
 }
 
 export type SubmittedAnswer = { questionId: string; selectedOptionId: string | null }
@@ -71,7 +87,11 @@ export type DocumentSummary = {
   chunkCount: number
   uploadedAt: string
   processedAt: string | null
+  progress: IndexingStep | null
 }
+
+// Done and total count chunks; both are 0 while the document is still being read.
+export type IndexingStep = { stage: 'Reading' | 'Embedding' | 'RateLimited'; done: number; total: number }
 
 export type DocumentChunk = { id: string; index: number; text: string }
 

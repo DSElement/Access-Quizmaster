@@ -26,8 +26,18 @@ public record EditableQuiz(
     string Title,
     string? Description,
     QuizVisibility Visibility,
+    Guid? SourceDocumentId,
     IReadOnlyList<EditableQuestion> Questions);
 
-public record EditableQuestion(Guid Id, string Text, IReadOnlyList<EditableOption> Options);
+public record EditableQuestion(Guid Id, string Text, Guid? SourceChunkId, IReadOnlyList<EditableOption> Options);
 
 public record EditableOption(Guid Id, string Text, bool IsCorrect);
+
+public record QuizDraft(
+    string Title,
+    string? Description,
+    Guid SourceDocumentId,
+    string SourceDocumentName,
+    IReadOnlyList<QuizDraftQuestion> Questions);
+
+public record QuizDraftQuestion(string Text, Guid SourceChunkId, IReadOnlyList<SaveOptionRequest> Options);

@@ -1,5 +1,5 @@
 import { api } from '../../api/client'
-import type { ChunkMatch, DocumentChunk, DocumentSummary } from '../../api/types'
+import type { ChunkMatch, DocumentChunk, DocumentSummary, QuizDraft } from '../../api/types'
 
 // Same limits as DocumentFiles on the API; checking here too saves uploading a file that would be refused.
 export const MAX_FILE_BYTES = 10 * 1024 * 1024
@@ -42,5 +42,10 @@ export function uploadDocument(file: File) {
   form.append('file', file)
   return api<DocumentSummary>('/documents', { method: 'POST', body: form })
 }
+
+export const QUESTION_COUNTS = [3, 5, 10, 15]
+
+export const generateQuiz = (id: string, input: { questionCount: number; topic: string | null }) =>
+  api<QuizDraft>(`/documents/${id}/generate-quiz`, { method: 'POST', body: input })
 
 export const deleteDocument = (id: string) => api<void>(`/documents/${id}`, { method: 'DELETE' })

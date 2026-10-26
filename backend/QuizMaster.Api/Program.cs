@@ -1,8 +1,11 @@
 using System.ClientModel;
+using System.ClientModel.Primitives;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
@@ -12,6 +15,7 @@ using QuizMaster.Api.Data;
 using QuizMaster.Api.Models;
 using QuizMaster.Api.Services;
 using QuizMaster.Api.Services.Documents;
+using QuizMaster.Api.Services.QuizGeneration;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,7 +38,6 @@ builder.Services.AddDbContext<AppDbContext>(options => options
         .UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery)
         // Maps Pgvector.Vector to the vector column type and enables CosineDistance() in LINQ
         .UseVector())
-    // `CreatedAt` => `created_at`
     .UseSnakeCaseNamingConvention()
     .UseSeeding((context, _) => SeedData.Seed((AppDbContext)context))
     .UseAsyncSeeding((context, _, cancellationToken) => SeedData.SeedAsync((AppDbContext)context, cancellationToken)));
@@ -55,23 +58,86 @@ builder.Services.AddOptions<DocumentOptions>()
 builder.Services.AddSingleton(services =>
 {
     var gemini = services.GetRequiredService<IOptions<GeminiOptions>>().Value;
-    return new OpenAIClient(
-        new ApiKeyCredential(gemini.ApiKey),
-        new OpenAIClientOptions { Endpoint = new Uri(gemini.Endpoint) });
+    var generationTimeout = services.GetRequiredService<IOptions<QuizGenerationOptions>>().Value.TimeoutSeconds;
+    var clientOptions = new OpenAIClientOptions
+    {
+        Endpoint = new Uri(gemini.Endpoint),
+        // The SDK gives up on a single request after 100 s by default, but one step of a slow model can take
+        // longer, so a request may take as long as a whole generation is allowed to (no limit when that is 0).
+        NetworkTimeout = generationTimeout == 0
+            ? Timeout.InfiniteTimeSpan
+            : TimeSpan.FromSeconds(Math.Max(100, generationTimeout)),
+    };
+    // Tool calling with Gemini 3 models needs their thought signatures sent back (see the policy).
+    clientOptions.AddPolicy(new GeminiThoughtSignaturePolicy(), PipelinePosition.PerCall);
+    return new OpenAIClient(new ApiKeyCredential(gemini.ApiKey), clientOptions);
 });
 
 builder.Services
     .AddEmbeddingGenerator(services => services.GetRequiredService<OpenAIClient>()
         .GetEmbeddingClient(services.GetRequiredService<IOptions<GeminiOptions>>().Value.EmbeddingModel)
         .AsIEmbeddingGenerator())
-    // gemini-embedding-001 returns 3072 numbers by default; ask for the size the database column expects.
+    // Gemini's embedding models return more numbers by default; ask for the size the database column expects.
     .ConfigureOptions(options => options.Dimensions ??= DocumentChunk.EmbeddingDimensions);
 
 builder.Services.AddSingleton<DocumentStorage>();
 builder.Services.AddSingleton<DocumentQueue>();
+builder.Services.AddSingleton<IndexingProgress>();
 builder.Services.AddScoped<DocumentIndexer>();
 builder.Services.AddScoped<DocumentSearch>();
 builder.Services.AddHostedService<DocumentIndexingWorker>();
+
+builder.Services.AddOptions<QuizGenerationOptions>()
+    .BindConfiguration(QuizGenerationOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+// UseFunctionInvocation runs the tool calls the model asks for and sends the results back (the agent loop).
+builder.Services
+    .AddChatClient(services => services.GetRequiredService<OpenAIClient>()
+        .GetChatClient(services.GetRequiredService<IOptions<GeminiOptions>>().Value.ChatModel)
+        .AsIChatClient())
+    .UseFunctionInvocation(configure: client =>
+    {
+        client.MaximumIterationsPerRequest = 12;
+        client.MaximumConsecutiveErrorsPerRequest = 3;
+    });
+
+builder.Services.AddScoped<QuizGenerator>();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy(QuizGenerationOptions.RateLimitPolicy, context =>
+    {
+        var settings = context.RequestServices.GetRequiredService<IOptions<QuizGenerationOptions>>().Value;
+        return RateLimitPartition.GetFixedWindowLimiter(
+            context.User.GetUserId() ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = settings.PermitsPerUser,
+                Window = TimeSpan.FromMinutes(settings.WindowMinutes),
+            });
+    });
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+            context.HttpContext.Response.Headers.RetryAfter = ((int)retryAfter.TotalSeconds).ToString();
+
+        await context.HttpContext.RequestServices.GetRequiredService<IProblemDetailsService>().WriteAsync(new()
+        {
+            HttpContext = context.HttpContext,
+            ProblemDetails =
+            {
+                Status = StatusCodes.Status429TooManyRequests,
+                Title = "Too many requests",
+                Detail = "You've generated several quizzes in a short time. Try again in a few minutes.",
+            },
+        });
+    };
+});
 
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database");
 
@@ -132,6 +198,8 @@ app.UseStatusCodePages();
 
 app.UseAuthentication();
 app.UseAuthorization();
+// After authentication, so the limiter can tell users apart.
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {

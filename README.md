@@ -1,6 +1,6 @@
 # QuizMaster
 
-A full-stack quiz platform. Users take official quizzes, write their own, share them with the community, and upload their own documents, which are split into chunks and indexed for semantic search.
+A full-stack quiz platform. Users take official quizzes, write their own, share them with the community, and generate quizzes with AI from documents they upload.
 
 ## Stack
 
@@ -9,7 +9,7 @@ A full-stack quiz platform. Users take official quizzes, write their own, share 
 | Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, React Hook Form + Zod, CSS Modules |
 | Backend | ASP.NET Core 10 Web API, ASP.NET Core Identity |
 | Database | PostgreSQL 18 + pgvector, EF Core 10 (Npgsql) |
-| AI | Gemini embeddings (`gemini-embedding-001`) through Microsoft.Extensions.AI |
+| AI | Gemini (`gemini-3.6-flash` for quiz generation, `gemini-embedding-2` for embeddings) through Microsoft.Extensions.AI |
 
 ## Prerequisites
 
@@ -58,7 +58,7 @@ Open <http://localhost:5173>. The Vite dev server forwards every `/api` request 
 | Quiz details, play, edit | `/quizzes/{id}`, `/quizzes/{id}/play`, `/quizzes/{id}/edit` |
 | Write a quiz (admins: `?official=true`) | `/quizzes/new` |
 | Your results | `/attempts`, `/attempts/{id}` |
-| Your documents, upload, chunks and search | `/documents`, `/documents/{id}` |
+| Your documents: upload, generate a quiz, search, chunks | `/documents`, `/documents/{id}` |
 | Manage users (admin) | `/admin/users` |
 
 On startup the API creates the `Admin` and `User` roles and, if it doesn't exist yet, the admin account `admin@quizmaster.local` (configured in `appsettings.Development.json`). Passwords need at least 8 characters with an uppercase letter, a lowercase letter, a digit and a symbol. Changing the secret later does not change an existing admin's password.
@@ -98,6 +98,7 @@ The cookie also carries the user's roles. Once a minute the API checks the cooki
 | POST | `/api/documents` | Signed in | Upload a PDF, Markdown or text file (multipart field `file`, up to 10 MB); indexing runs in the background |
 | GET | `/api/documents/{id}/chunks` | Owner | The text chunks the document was split into |
 | GET | `/api/documents/{id}/search?q=&top=` | Owner | The chunks most similar to a question (default 5, at most 10) |
+| POST | `/api/documents/{id}/generate-quiz` | Owner | Have AI write a quiz draft from the document (`questionCount` 3 to 15, optional `topic`); nothing is saved |
 | DELETE | `/api/documents/{id}` | Owner | Delete the document, its chunks and the stored file |
 | GET | `/api/admin/users?search=` | Admin | Accounts with their roles; optional `search` matches display name or email |
 | POST | `/api/admin/users/{id}/promote` | Admin | Give an account the Admin role |
@@ -125,14 +126,32 @@ Documents are private: only their owner can see, search or delete them, and anyo
 A background worker indexes one document at a time:
 
 1. Extract the text. PDFs are read with PdfPig, which only reads the text layer, so scanned PDFs fail with "No text found". Reading stops early once there is clearly too much text for the chunk limit, so a small compressed file that unpacks into a huge amount of text can't tie up the worker.
-2. Split it into chunks of at most 1000 characters. A chunk ends at a paragraph or sentence end where possible, headings stay with the paragraph after them, and consecutive chunks share about 150 characters of whole sentences, so an idea that crosses a boundary is complete in at least one chunk.
-3. Check the limit: a document that splits into more than 200 chunks (roughly 60 pages) fails here, before anything is sent to Gemini.
-4. Embed the chunks with `gemini-embedding-001` (768 numbers per chunk), 50 per request, waiting and retrying if the free tier's rate limit is reached.
+2. Split it into chunks of at most 1500 characters. A chunk ends at a paragraph or sentence end where possible, headings stay with the paragraph after them, and consecutive chunks share about 200 characters of whole sentences, so an idea that crosses a boundary is complete in at least one chunk. Indentation is kept, and a fenced code block (```` ``` ```` or `~~~`) is one paragraph even with blank lines inside; code longer than a chunk is cut between lines, and the overlap repeats whole lines.
+3. Check the limit: a document that splits into more than 200 chunks fails here, before anything is sent to Gemini. 200 chunks is roughly 90 pages of text. Documents uploaded by an admin may have up to 400 chunks; the owner's role is read from the database when the document is indexed. On the free tier, embedding hundreds of chunks runs into Gemini's per-minute limit, so a long document can take a few minutes while the worker waits and retries.
+4. Embed the chunks with `gemini-embedding-2` (768 numbers per chunk), 50 per request, waiting and retrying if the free tier's rate limit is reached.
 5. Save all chunks at once and mark the document **Ready**. Any error marks it **Failed** with a message.
 
-The status goes Pending → Processing → Ready or Failed. Documents still Pending or Processing when the API stops are picked up again on the next start.
+The status goes Pending → Processing → Ready or Failed. While a document is processed, the worker records its step (reading, embedding *n* of *total* chunks, or waiting for Gemini's rate limit) in memory, and the document endpoints return it as `progress`, which the pages show as a progress bar. Documents still Pending or Processing when the API stops are picked up again on the next start.
 
-The vectors live in PostgreSQL itself (pgvector), in `document_chunks.embedding`, with an HNSW index for cosine distance. A search embeds the question the same way and returns the closest chunks of that one document. The chunk size, overlap, chunk limit and storage folder are in the `Documents` section of `appsettings.json`. The Gemini endpoint and model names are in the `Gemini` section.
+The vectors live in PostgreSQL itself (pgvector), in `document_chunks.embedding`, with an HNSW index for cosine distance. A search embeds the question the same way and returns the closest chunks of that one document. The chunk size, overlap, chunk limits (`MaxChunks`, `AdminMaxChunks`) and storage folder are in the `Documents` section of `appsettings.json`. The Gemini endpoint and model names are in the `Gemini` section.
+
+## Generating quizzes
+
+On a ready document's page you pick the number of questions and, optionally, a focus. The API runs an agent: Gemini gets three tools and decides when to call them.
+
+| Tool | What it does |
+|---|---|
+| `list_existing_quiz_titles` | Titles of the quizzes you can see, so the new title doesn't repeat one |
+| `search_document` | The 5 chunks of this document most similar to a query (the same search as the document page) |
+| `create_quiz` | Submits the quiz. It's checked: the requested number of questions, four different options each, one correct (A to D), no "all/none of the above", a correct option that isn't much longer than the others (the most common giveaway), and every question citing a chunk the agent has actually read through `search_document`. If something is wrong, the model gets the reason and tries again; once it's accepted, the loop stops. If the model answers in plain text instead, it's reminded once to call `create_quiz`. |
+
+The model also gets the document's name and the opening words of up to 15 chunks, so it knows what to search for. The instructions also ask for wrong options that are plausible (related terms from the same topic), all of the same kind and similar length, never a list of several answers in one option, and questions that don't refer to code or tables the player can't see. Text from the document is treated as data, not instructions. Answer options are shuffled, because models tend to put the right answer in the same position.
+
+The result is a draft: it opens in the quiz builder, where you check and edit it before saving. A saved quiz remembers its document and the chunk each question came from (deleting the document clears those links, the quiz stays). When saving, the API checks that the document is yours and that every cited chunk belongs to it.
+
+Limits protect the free tier: each user can generate 5 quizzes per 10 minutes (then `429`), a generation stops after 150 seconds (`504`), Gemini errors and failed generations return `502` (`503` if Gemini's rate limit is reached), and one request to the model is capped at 12 round trips. The per-user limit and the timeout are in the `QuizGeneration` section of `appsettings.json`; the round-trip cap is in `Program.cs`.
+
+Gemini 3 models attach a "thought signature" to each tool call and reject the next request unless it is sent back. The OpenAI SDK drops that unknown field, so `GeminiThoughtSignaturePolicy` remembers the signatures from responses and adds them back to later requests.
 
 ## Database changes
 
@@ -169,8 +188,9 @@ backend/QuizMaster.Api/
   Data/                       AppDbContext, seed data, migrations
   Contracts/                  Request/response shapes sent over HTTP
   Controllers/                API endpoints
-  Services/                   Quiz validation and grading, Gemini settings
+  Services/                   Quiz validation and grading, Gemini settings and thought-signature policy
   Services/Documents/         Upload checks, file storage, text extraction, chunker, indexing worker, search
+  Services/QuizGeneration/    The quiz-writing agent, its tools and limits
   App_Data/documents/         Uploaded files (not in Git)
 frontend/
   vite.config.ts              Dev server and the /api proxy

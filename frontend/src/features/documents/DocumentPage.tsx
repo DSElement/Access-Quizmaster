@@ -5,17 +5,21 @@ import type { DocumentSummary } from '../../api/types'
 import { DocumentStatusBadge } from '../../components/Badge'
 import { ErrorNote, Loading } from '../../components/LoadState'
 import { PageHeader } from '../../components/PageHeader'
+import { Spinner } from '../../components/Spinner'
 import { formatBytes, formatDateTime } from '../../lib/format'
 import {
   deleteDocument,
   documentKeys,
   fetchChunks,
   fetchDocument,
+  generateQuiz,
   isIndexing,
   POLL_INTERVAL_MS,
+  QUESTION_COUNTS,
   searchDocument,
 } from './api'
 import styles from './DocumentPage.module.css'
+import { IndexingStatus } from './IndexingStatus'
 
 export function DocumentPage() {
   const { id = '' } = useParams()
@@ -69,12 +73,7 @@ function DocumentDetail({ document }: { document: DocumentSummary }) {
         )}
       </dl>
 
-      {isIndexing(document) && (
-        <p className={styles.indexing} role="status">
-          {document.status === 'Pending' ? 'Waiting to be indexed.' : 'Reading and indexing the document.'} This page
-          updates by itself.
-        </p>
-      )}
+      {isIndexing(document) && <IndexingStatus document={document} />}
 
       {document.status === 'Failed' && (
         <p className={styles.failed} role="alert">
@@ -84,6 +83,7 @@ function DocumentDetail({ document }: { document: DocumentSummary }) {
 
       {document.status === 'Ready' && (
         <>
+          <GenerateQuiz documentId={document.id} />
           <SearchBox documentId={document.id} />
           <ChunkList documentId={document.id} count={document.chunkCount} />
         </>
@@ -108,6 +108,71 @@ function DocumentDetail({ document }: { document: DocumentSummary }) {
         {remove.isError && <ErrorNote error={remove.error} />}
       </section>
     </article>
+  )
+}
+
+function GenerateQuiz({ documentId }: { documentId: string }) {
+  const navigate = useNavigate()
+  const [questionCount, setQuestionCount] = useState(5)
+  const [topic, setTopic] = useState('')
+
+  const generate = useMutation({
+    mutationFn: () => generateQuiz(documentId, { questionCount, topic: topic.trim() || null }),
+    // Nothing is saved yet: the draft opens in the quiz builder for review.
+    onSuccess: (draft) => navigate('/quizzes/new', { state: { draft } }),
+  })
+
+  function submit(event: FormEvent) {
+    event.preventDefault()
+    generate.mutate()
+  }
+
+  return (
+    <section className={styles.section} aria-labelledby="generate-heading">
+      <h2 id="generate-heading" className={styles.heading}>
+        Generate a quiz
+      </h2>
+      <p className={styles.note}>AI writes a draft from this document. You review and edit it before it's saved.</p>
+
+      <form className={styles.generateForm} onSubmit={submit}>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Questions</span>
+          <select
+            className={styles.input}
+            value={questionCount}
+            onChange={(event) => setQuestionCount(Number(event.target.value))}
+          >
+            {QUESTION_COUNTS.map((count) => (
+              <option key={count} value={count}>
+                {count}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={`${styles.field} ${styles.grow}`}>
+          <span className={styles.fieldLabel}>Focus (optional)</span>
+          <input
+            className={styles.input}
+            value={topic}
+            maxLength={200}
+            onChange={(event) => setTopic(event.target.value)}
+            placeholder="e.g. the Calvin cycle"
+          />
+        </label>
+        <button type="submit" disabled={generate.isPending}>
+          {generate.isPending ? (
+            <>
+              <Spinner /> Writing the quiz…
+            </>
+          ) : (
+            'Generate draft'
+          )}
+        </button>
+      </form>
+
+      {generate.isPending && <p className={styles.note}>This usually takes under a minute.</p>}
+      {generate.isError && <ErrorNote error={generate.error} />}
+    </section>
   )
 }
 
@@ -144,7 +209,7 @@ function SearchBox({ documentId }: { documentId: string }) {
         <input
           id="chunk-search"
           type="search"
-          className={styles.searchInput}
+          className={`${styles.input} ${styles.grow}`}
           value={draft}
           maxLength={500}
           onChange={(event) => setDraft(event.target.value)}

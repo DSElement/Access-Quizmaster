@@ -11,11 +11,15 @@ public class DocumentOptions
     public string StoragePath { get; init; } = "App_Data/documents";
 
     [Range(200, 8000)]
-    public int ChunkSize { get; init; } = 1000;
+    public int ChunkSize { get; init; } = 1500;
 
     [Range(0, 2000)]
-    public int ChunkOverlap { get; init; } = 150;
+    public int ChunkOverlap { get; init; } = 200;
 
     [Range(1, 10_000)]
     public int MaxChunks { get; init; } = 200;
+
+    // Used instead of MaxChunks when the document's owner is an admin.
+    [Range(1, 10_000)]
+    public int AdminMaxChunks { get; init; } = 400;
 }

@@ -1,0 +1,54 @@
+.status {
+  display: grid;
+  gap: 6px;
+  max-width: 420px;
+}
+
+.label {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.track {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--surface-hover);
+}
+
+.fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+/* No number yet: a short bar slides across to show something is happening. */
+.moving {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  background: var(--accent);
+  animation: slide 1.4s ease-in-out infinite;
+}
+
+@keyframes slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+
+  .moving {
+    animation: none;
+    width: 100%;
+    opacity: 0.35;
+  }
+}

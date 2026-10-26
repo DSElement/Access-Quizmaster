@@ -55,7 +55,7 @@ function AttemptResult({ attempt }: { attempt: AttemptDetail }) {
           <li key={answer.id} className={styles.answer} data-correct={answer.wasCorrect || undefined}>
             <h2 className={styles.question}>
               <span className={styles.number}>Q{index + 1}</span>
-              <span>{answer.questionText}</span>
+              <span className={styles.questionText}>{answer.questionText}</span>
               <span className={styles.mark}>{answer.wasCorrect ? 'Correct' : 'Wrong'}</span>
             </h2>
 

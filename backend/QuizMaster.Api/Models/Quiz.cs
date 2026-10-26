@@ -10,6 +10,9 @@ public class Quiz
     public string? OwnerId { get; set; }
     public AppUser? Owner { get; set; }
 
+    public Guid? SourceDocumentId { get; set; }
+    public Document? SourceDocument { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

@@ -19,6 +19,8 @@ public record SaveQuizRequest
 
     [Required, MinLength(1), MaxLength(50)]
     public List<SaveQuestionRequest> Questions { get; init; } = [];
+
+    public Guid? SourceDocumentId { get; init; }
 }
 
 public record SaveQuestionRequest
@@ -28,6 +30,8 @@ public record SaveQuestionRequest
 
     [Required, MinLength(2), MaxLength(6)]
     public List<SaveOptionRequest> Options { get; init; } = [];
+
+    public Guid? SourceChunkId { get; init; }
 }
 
 public record SaveOptionRequest
@@ -36,4 +40,13 @@ public record SaveOptionRequest
     public string Text { get; init; } = "";
 
     public bool IsCorrect { get; init; }
+}
+
+public record GenerateQuizRequest
+{
+    [Range(3, 15)]
+    public int QuestionCount { get; init; } = 5;
+
+    [StringLength(200)]
+    public string? Topic { get; init; }
 }

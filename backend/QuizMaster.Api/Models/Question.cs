@@ -11,5 +11,8 @@ public class Question
 
     public required string Text { get; set; }
 
+    public Guid? SourceChunkId { get; set; }
+    public DocumentChunk? SourceChunk { get; set; }
+
     public List<AnswerOption> Options { get; set; } = [];
 }

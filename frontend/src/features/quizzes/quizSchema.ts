@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { EditableQuiz, SaveQuizInput } from '../../api/types'
+import type { EditableQuiz, QuizDraft, SaveQuizInput } from '../../api/types'
 
 export const MAX_QUESTIONS = 50
 export const MIN_OPTIONS = 2
@@ -21,6 +21,8 @@ const questionSchema = z.object({
       (options) => new Set(options.map((o) => o.text.trim().toLowerCase())).size === options.length,
       'Two answers are the same.',
     ),
+  // Not shown in the form: the document passage a generated question came from, kept through edits.
+  sourceChunkId: z.string().nullable(),
 })
 
 export const quizFormSchema = z.object({
@@ -36,6 +38,7 @@ export type QuizFormValues = z.infer<typeof quizFormSchema>
 
 export const emptyQuestion = (): QuizFormValues['questions'][number] => ({
   text: '',
+  sourceChunkId: null,
   options: Array.from({ length: 4 }, () => ({ text: '', isCorrect: false })),
 })
 
@@ -50,8 +53,15 @@ export const toFormValues = (quiz: EditableQuiz): QuizFormValues => ({
   description: quiz.description ?? '',
   questions: quiz.questions.map((q) => ({
     text: q.text,
+    sourceChunkId: q.sourceChunkId,
     options: q.options.map((o) => ({ text: o.text, isCorrect: o.isCorrect })),
   })),
+})
+
+export const draftToFormValues = (draft: QuizDraft): QuizFormValues => ({
+  title: draft.title,
+  description: draft.description ?? '',
+  questions: draft.questions,
 })
 
 export const toSaveInput = (values: QuizFormValues): SaveQuizInput => ({

@@ -41,7 +41,6 @@ public class AttemptsController(AppDbContext db) : ControllerBase
     {
         var userId = User.RequireUserId();
 
-        // EF runs everything except Percentage() in SQL; the last Select is allowed to call C# code.
         return await db.Attempts
             .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.SubmittedAt)

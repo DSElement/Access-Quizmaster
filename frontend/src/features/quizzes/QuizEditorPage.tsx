@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { useParams, useSearchParams } from 'react-router'
+import { useLocation, useParams, useSearchParams } from 'react-router'
+import type { QuizDraft } from '../../api/types'
 import { ErrorNote, Loading } from '../../components/LoadState'
 import { PageHeader } from '../../components/PageHeader'
 import { useAuth } from '../auth/useAuth'
 import { createQuiz, fetchEditableQuiz, quizKeys, updateQuiz } from './api'
 import { QuizForm } from './QuizForm'
-import { emptyQuiz, toFormValues } from './quizSchema'
+import { draftToFormValues, emptyQuiz, toFormValues } from './quizSchema'
 
 export function QuizEditorPage() {
   const { id } = useParams()
@@ -15,7 +16,30 @@ export function QuizEditorPage() {
 function NewQuiz() {
   const { isAdmin } = useAuth()
   const [searchParams] = useSearchParams()
+  const location = useLocation()
   const official = isAdmin && searchParams.get('official') === 'true'
+
+  // A generated draft arrives through the navigation state (see the document page).
+  const draft = (location.state as { draft?: QuizDraft } | null)?.draft
+
+  if (draft) {
+    return (
+      <section>
+        <PageHeader
+          eyebrow="Generated draft"
+          title="Review the quiz"
+          lead={`Written by AI from ${draft.sourceDocumentName}. Check every question and answer before saving: it can get things wrong.`}
+        />
+        <QuizForm
+          key={location.key}
+          defaultValues={draftToFormValues(draft)}
+          submitLabel="Save quiz"
+          cancelTo={`/documents/${draft.sourceDocumentId}`}
+          save={(input) => createQuiz({ ...input, sourceDocumentId: draft.sourceDocumentId }, false)}
+        />
+      </section>
+    )
+  }
 
   return (
     <section>
@@ -29,6 +53,7 @@ function NewQuiz() {
         }
       />
       <QuizForm
+        key={location.key}
         defaultValues={emptyQuiz()}
         submitLabel="Create quiz"
         cancelTo={official ? '/quizzes' : '/quizzes?tab=mine'}

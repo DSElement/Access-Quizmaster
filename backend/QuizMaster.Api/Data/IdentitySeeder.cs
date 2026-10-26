@@ -8,7 +8,6 @@ public static class IdentitySeeder
 {
     public static async Task SeedAsync(IServiceProvider services)
     {
-        // Startup has no HTTP request, so create a scope to get scoped services (DbContext, UserManager).
         using var scope = services.CreateScope();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();

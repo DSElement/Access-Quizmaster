@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Pgvector;
+using QuizMaster.Api.Auth;
 using QuizMaster.Api.Data;
 using QuizMaster.Api.Models;
 using UglyToad.PdfPig.Core;
@@ -15,6 +16,7 @@ public class DocumentIndexer(
     AppDbContext db,
     DocumentStorage storage,
     IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator,
+    IndexingProgress progress,
     IOptions<DocumentOptions> options,
     ILogger<DocumentIndexer> logger)
 {
@@ -32,26 +34,31 @@ public class DocumentIndexer(
 
         document.Status = DocumentStatus.Processing;
         await db.SaveChangesAsync(cancellationToken);
+        progress.Report(documentId, new IndexingStep(IndexingStage.Reading, 0, 0));
 
         try
         {
-            // Twice what MaxChunks full chunks hold, because raw text still has spaces and blank lines the chunker drops.
+            var maxChunks = await OwnerIsAdminAsync(document.OwnerId, cancellationToken)
+                ? settings.AdminMaxChunks
+                : settings.MaxChunks;
+
+            // Twice what maxChunks full chunks hold, because raw text still has spaces and blank lines the chunker drops.
             // Anything longer can't fit; anything shorter is decided by the exact chunk count below.
-            var maxChars = settings.MaxChunks * settings.ChunkSize * 2;
+            var maxChars = maxChunks * settings.ChunkSize * 2;
             var extracted = await TextExtractor.ExtractAsync(
                 storage.PathFor(document.StoredFileName), document.ContentType, maxChars, cancellationToken);
             if (extracted.IsTooLong)
-                throw new DocumentRejectedException(TooLongMessage());
+                throw new DocumentRejectedException(TooLongMessage(maxChunks));
 
             var chunks = TextChunker.Split(extracted.Text, settings.ChunkSize, settings.ChunkOverlap);
 
             if (chunks.Count == 0)
                 throw new DocumentRejectedException("No text found. Scanned PDFs (pictures of pages) aren't supported.");
 
-            if (chunks.Count > settings.MaxChunks)
-                throw new DocumentRejectedException(TooLongMessage($" It splits into {chunks.Count}."));
+            if (chunks.Count > maxChunks)
+                throw new DocumentRejectedException(TooLongMessage(maxChunks, $" It splits into {chunks.Count}."));
 
-            var vectors = await EmbedAsync(chunks, cancellationToken);
+            var vectors = await EmbedAsync(documentId, chunks, cancellationToken);
 
             document.Chunks.AddRange(chunks.Select((chunk, index) => new DocumentChunk
             {
@@ -87,20 +94,37 @@ public class DocumentIndexer(
             logger.LogError(ex, "Indexing document {DocumentId} failed", documentId);
             await MarkFailedAsync(documentId, Describe(ex), cancellationToken);
         }
+        finally
+        {
+            progress.Clear(documentId);
+        }
     }
 
-    private string TooLongMessage(string detail = "") =>
-        $"This document is too long: the limit is {settings.MaxChunks} chunks of text.{detail} " +
+    // Read from the database: the worker has no signed-in user, and this way a promotion counts immediately.
+    private Task<bool> OwnerIsAdminAsync(string ownerId, CancellationToken cancellationToken) =>
+        db.UserRoles.AnyAsync(
+            userRole => userRole.UserId == ownerId &&
+                db.Roles.Any(role => role.Id == userRole.RoleId && role.Name == Roles.Admin),
+            cancellationToken);
+
+    private static string TooLongMessage(int maxChunks, string detail = "") =>
+        $"This document is too long: the limit is {maxChunks} chunks of text.{detail} " +
         "Try a shorter document, or split it into parts.";
 
-    private async Task<List<ReadOnlyMemory<float>>> EmbedAsync(List<string> chunks, CancellationToken cancellationToken)
+    private async Task<List<ReadOnlyMemory<float>>> EmbedAsync(
+        Guid documentId, List<string> chunks, CancellationToken cancellationToken)
     {
         var vectors = new List<ReadOnlyMemory<float>>(chunks.Count);
 
         foreach (var batch in chunks.Chunk(EmbeddingBatchSize))
         {
+            progress.Report(documentId, new IndexingStep(IndexingStage.Embedding, vectors.Count, chunks.Count));
+
             var embeddings = await WithRateLimitRetriesAsync(
-                () => embeddingGenerator.GenerateAsync(batch, cancellationToken: cancellationToken), cancellationToken);
+                () => embeddingGenerator.GenerateAsync(batch, cancellationToken: cancellationToken),
+                onWait: () => progress.Report(documentId,
+                    new IndexingStep(IndexingStage.RateLimited, vectors.Count, chunks.Count)),
+                cancellationToken);
 
             foreach (var embedding in embeddings)
             {
@@ -117,7 +141,8 @@ public class DocumentIndexer(
     }
 
     // The free tier limits requests and tokens per minute; the SDK's own retries are too quick to wait that out.
-    private async Task<T> WithRateLimitRetriesAsync<T>(Func<Task<T>> call, CancellationToken cancellationToken)
+    private async Task<T> WithRateLimitRetriesAsync<T>(
+        Func<Task<T>> call, Action onWait, CancellationToken cancellationToken)
     {
         for (var attempt = 1; ; attempt++)
         {
@@ -129,6 +154,7 @@ public class DocumentIndexer(
             {
                 var delay = TimeSpan.FromSeconds(20 * attempt);
                 logger.LogWarning("Gemini rate limit reached, retrying in {Delay}", delay);
+                onWait();
                 await Task.Delay(delay, cancellationToken);
             }
         }

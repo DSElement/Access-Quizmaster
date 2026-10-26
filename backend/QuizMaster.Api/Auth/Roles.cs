@@ -8,7 +8,6 @@ public static class Roles
     public static readonly string[] All = [Admin, User];
 }
 
-// Authorization policy names used with [Authorize(Policy = ...)]
 public static class Policies
 {
     public const string AdminOnly = "AdminOnly";

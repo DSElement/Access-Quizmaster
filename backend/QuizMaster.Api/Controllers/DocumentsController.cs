@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using QuizMaster.Api.Auth;
 using QuizMaster.Api.Contracts;
 using QuizMaster.Api.Data;
 using QuizMaster.Api.Models;
 using QuizMaster.Api.Services.Documents;
+using QuizMaster.Api.Services.QuizGeneration;
 
 namespace QuizMaster.Api.Controllers;
 
@@ -14,7 +16,8 @@ public class DocumentsController(
     AppDbContext db,
     DocumentStorage storage,
     DocumentQueue queue,
-    DocumentSearch search) : ControllerBase
+    DocumentSearch search,
+    IndexingProgress progress) : ControllerBase
 {
     private const int MaxFileNameLength = 255;
     private const int MaxQueryLength = 500;
@@ -24,11 +27,13 @@ public class DocumentsController(
     {
         var userId = User.RequireUserId();
 
-        return await db.Documents
+        var documents = await db.Documents
+            .AsNoTracking()
             .Where(d => d.OwnerId == userId)
             .OrderByDescending(d => d.UploadedAt)
-            .Select(d => ToSummary(d))
             .ToListAsync(cancellationToken);
+
+        return documents.Select(ToSummary).ToList();
     }
 
     [HttpGet("{id:guid}")]
@@ -37,11 +42,10 @@ public class DocumentsController(
         var userId = User.RequireUserId();
 
         var document = await db.Documents
-            .Where(d => d.Id == id && d.OwnerId == userId)
-            .Select(d => ToSummary(d))
-            .FirstOrDefaultAsync(cancellationToken);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == id && d.OwnerId == userId, cancellationToken);
 
-        return document is null ? NotFound() : document;
+        return document is null ? NotFound() : ToSummary(document);
     }
 
     [HttpPost]
@@ -119,7 +123,6 @@ public class DocumentsController(
             .ToListAsync(cancellationToken);
     }
 
-    // Shows which chunks a question would retrieve; quiz generation uses the same search.
     [HttpGet("{id:guid}/search")]
     public async Task<ActionResult<List<ChunkMatch>>> Search(
         Guid id, [FromQuery] string q, [FromQuery] int top = 5, CancellationToken cancellationToken = default)
@@ -138,13 +141,32 @@ public class DocumentsController(
             .Select(d => (DocumentStatus?)d.Status)
             .FirstOrDefaultAsync(cancellationToken);
         if (status is null) return NotFound();
-        if (status != DocumentStatus.Ready)
-        {
-            return Problem(statusCode: StatusCodes.Status409Conflict, title: "Document not ready",
-                detail: "The document can be searched once it has been indexed.");
-        }
+        if (status != DocumentStatus.Ready) return NotReady();
 
         return await search.SearchAsync(id, userId, q, Math.Clamp(top, 1, 10), cancellationToken);
+    }
+
+    [HttpPost("{id:guid}/generate-quiz")]
+    [EnableRateLimiting(QuizGenerationOptions.RateLimitPolicy)]
+    public async Task<ActionResult<QuizDraft>> GenerateQuiz(
+        Guid id, GenerateQuizRequest request, [FromServices] QuizGenerator generator, CancellationToken cancellationToken)
+    {
+        var userId = User.RequireUserId();
+
+        var document = await db.Documents
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == id && d.OwnerId == userId, cancellationToken);
+        if (document is null) return NotFound();
+        if (document.Status != DocumentStatus.Ready) return NotReady();
+
+        try
+        {
+            return await generator.GenerateAsync(document, userId, request.QuestionCount, request.Topic, cancellationToken);
+        }
+        catch (QuizGenerationException ex)
+        {
+            return Problem(statusCode: ex.StatusCode, title: "Quiz generation failed", detail: ex.Message);
+        }
     }
 
     [HttpDelete("{id:guid}")]
@@ -155,7 +177,6 @@ public class DocumentsController(
         var document = await db.Documents.FirstOrDefaultAsync(d => d.Id == id && d.OwnerId == userId, cancellationToken);
         if (document is null) return NotFound();
 
-        // The database deletes the chunks too (ON DELETE CASCADE).
         db.Documents.Remove(document);
         await db.SaveChangesAsync(cancellationToken);
         storage.Delete(document.StoredFileName);
@@ -163,9 +184,14 @@ public class DocumentsController(
         return NoContent();
     }
 
+    private ObjectResult NotReady() =>
+        Problem(statusCode: StatusCodes.Status409Conflict, title: "Document not ready",
+            detail: "The document can be used once it has been indexed.");
+
     private ObjectResult InvalidFile(string detail) =>
         Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid file", detail: detail);
 
-    private static DocumentSummary ToSummary(Document d) => new(
-        d.Id, d.FileName, d.ContentType, d.SizeBytes, d.Status, d.Error, d.ChunkCount, d.UploadedAt, d.ProcessedAt);
+    private DocumentSummary ToSummary(Document d) => new(
+        d.Id, d.FileName, d.ContentType, d.SizeBytes, d.Status, d.Error, d.ChunkCount, d.UploadedAt, d.ProcessedAt,
+        d.Status == DocumentStatus.Processing ? progress.Get(d.Id) : null);
 }
