@@ -12,6 +12,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<AnswerOption> AnswerOptions => Set<AnswerOption>();
     public DbSet<Attempt> Attempts => Set<Attempt>();
     public DbSet<AttemptAnswer> AttemptAnswers => Set<AttemptAnswer>();
+    public DbSet<Document> Documents => Set<Document>();
+    public DbSet<DocumentChunk> DocumentChunks => Set<DocumentChunk>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -101,6 +103,36 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         {
             answer.Property(a => a.QuestionText).HasMaxLength(500);
             answer.HasIndex(a => new { a.AttemptId, a.Position });
+        });
+
+        modelBuilder.Entity<Document>(document =>
+        {
+            document.Property(d => d.FileName).HasMaxLength(255);
+            document.Property(d => d.ContentType).HasMaxLength(100);
+            document.Property(d => d.StoredFileName).HasMaxLength(100);
+            document.Property(d => d.Status).HasConversion<string>().HasMaxLength(20);
+            document.Property(d => d.Error).HasMaxLength(500);
+
+            document.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(d => d.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+            document.HasIndex(d => new { d.OwnerId, d.UploadedAt });
+
+            document.HasMany(d => d.Chunks)
+                .WithOne(c => c.Document)
+                .HasForeignKey(c => c.DocumentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DocumentChunk>(chunk =>
+        {
+            chunk.Property(c => c.Embedding).HasColumnType($"vector({DocumentChunk.EmbeddingDimensions})");
+            chunk.HasIndex(c => new { c.DocumentId, c.Index }).IsUnique();
+
+            chunk.HasIndex(c => c.Embedding)
+                .HasMethod("hnsw")
+                .HasOperators("vector_cosine_ops");
         });
     }
 

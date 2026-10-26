@@ -30,10 +30,10 @@ public record AttemptDetail(
     double ScorePercentage,
     IReadOnlyList<AttemptAnswerDetail> Answers);
 
+// No correct option: the answer key isn't sent to players, even after they submit.
 public record AttemptAnswerDetail(
     Guid Id,
     string QuestionText,
     IReadOnlyList<string> Options,
     int? SelectedOptionIndex,
-    int CorrectOptionIndex,
     bool WasCorrect);

@@ -61,15 +61,13 @@ function AttemptResult({ attempt }: { attempt: AttemptDetail }) {
 
             <ul className={styles.options}>
               {answer.options.map((option, optionIndex) => {
-                const isCorrect = optionIndex === answer.correctOptionIndex
                 const isPicked = optionIndex === answer.selectedOptionIndex
-                const state = isCorrect ? 'correct' : isPicked ? 'wrong' : undefined
+                const state = isPicked ? (answer.wasCorrect ? 'correct' : 'wrong') : undefined
 
                 return (
                   <li key={optionIndex} className={styles.option} data-state={state}>
                     <span>{option}</span>
                     {isPicked && <span className={styles.tag}>your answer</span>}
-                    {isCorrect && !isPicked && <span className={styles.tag}>correct answer</span>}
                   </li>
                 )
               })}

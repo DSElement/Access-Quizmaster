@@ -22,3 +22,17 @@
 .Public {
   color: var(--accent);
 }
+
+.Pending,
+.Processing {
+  color: var(--muted);
+  border-style: dashed;
+}
+
+.Ready {
+  color: var(--correct);
+}
+
+.Failed {
+  color: var(--danger);
+}

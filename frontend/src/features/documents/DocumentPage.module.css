@@ -1,0 +1,114 @@
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 40px;
+  margin: 0 0 28px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.facts dt {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.indexing {
+  color: var(--muted);
+}
+
+.failed {
+  padding: 10px 14px;
+  border-left: 3px solid var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.section {
+  margin-top: 32px;
+}
+
+.heading {
+  margin: 0 0 4px;
+  font-size: 1.3rem;
+}
+
+.note {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.searchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.searchInput {
+  flex: 1 1 280px;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.chunks {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.chunk {
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.chunkLabel {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.chunkText {
+  margin: 0;
+  max-width: 75ch;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.manage {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--border);
+}
+
+.confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--danger);
+}

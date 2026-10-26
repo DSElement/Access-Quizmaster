@@ -15,6 +15,12 @@ public class AuthController(UserManager<AppUser> userManager, SignInManager<AppU
     [AllowAnonymous]
     public async Task<ActionResult<MeResponse>> Register(RegisterRequest request)
     {
+        if (ReservedDisplayNames.IsReserved(request.DisplayName))
+        {
+            ModelState.AddModelError("displayName", ReservedDisplayNames.Message);
+            return ValidationProblem(ModelState);
+        }
+
         var user = new AppUser
         {
             UserName = request.Email,

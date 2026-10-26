@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using Pgvector;
 using QuizMaster.Api.Data;
 
 #nullable disable
@@ -411,6 +412,113 @@ namespace QuizMaster.Api.Data.Migrations
                     b.ToTable("attempt_answers", (string)null);
                 });
 
+            modelBuilder.Entity("QuizMaster.Api.Models.Document", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("ChunkCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("chunk_count");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("content_type");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("error");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("file_name");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("owner_id");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("StoredFileName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("stored_file_name");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uploaded_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_documents");
+
+                    b.HasIndex("OwnerId", "UploadedAt")
+                        .HasDatabaseName("ix_documents_owner_id_uploaded_at");
+
+                    b.ToTable("documents", (string)null);
+                });
+
+            modelBuilder.Entity("QuizMaster.Api.Models.DocumentChunk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<Vector>("Embedding")
+                        .IsRequired()
+                        .HasColumnType("vector(768)")
+                        .HasColumnName("embedding");
+
+                    b.Property<int>("Index")
+                        .HasColumnType("integer")
+                        .HasColumnName("index");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.HasKey("Id")
+                        .HasName("pk_document_chunks");
+
+                    b.HasIndex("Embedding")
+                        .HasDatabaseName("ix_document_chunks_embedding");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Embedding"), "hnsw");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Embedding"), new[] { "vector_cosine_ops" });
+
+                    b.HasIndex("DocumentId", "Index")
+                        .IsUnique()
+                        .HasDatabaseName("ix_document_chunks_document_id_index");
+
+                    b.ToTable("document_chunks", (string)null);
+                });
+
             modelBuilder.Entity("QuizMaster.Api.Models.Question", b =>
                 {
                     b.Property<Guid>("Id")
@@ -591,6 +699,28 @@ namespace QuizMaster.Api.Data.Migrations
                     b.Navigation("Attempt");
                 });
 
+            modelBuilder.Entity("QuizMaster.Api.Models.Document", b =>
+                {
+                    b.HasOne("QuizMaster.Api.Models.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_documents_users_owner_id");
+                });
+
+            modelBuilder.Entity("QuizMaster.Api.Models.DocumentChunk", b =>
+                {
+                    b.HasOne("QuizMaster.Api.Models.Document", "Document")
+                        .WithMany("Chunks")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_document_chunks_documents_document_id");
+
+                    b.Navigation("Document");
+                });
+
             modelBuilder.Entity("QuizMaster.Api.Models.Question", b =>
                 {
                     b.HasOne("QuizMaster.Api.Models.Quiz", "Quiz")
@@ -617,6 +747,11 @@ namespace QuizMaster.Api.Data.Migrations
             modelBuilder.Entity("QuizMaster.Api.Models.Attempt", b =>
                 {
                     b.Navigation("Answers");
+                });
+
+            modelBuilder.Entity("QuizMaster.Api.Models.Document", b =>
+                {
+                    b.Navigation("Chunks");
                 });
 
             modelBuilder.Entity("QuizMaster.Api.Models.Question", b =>

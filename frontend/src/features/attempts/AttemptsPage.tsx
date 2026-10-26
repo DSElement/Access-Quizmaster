@@ -11,7 +11,7 @@ export function AttemptsPage() {
 
   return (
     <section>
-      <PageHeader title="Your results" lead="Every quiz you've finished, newest first." />
+      <PageHeader title="Your results" />
 
       {attempts.isPending ? (
         <Loading label="Loading results…" />

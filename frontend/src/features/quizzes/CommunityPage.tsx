@@ -15,7 +15,7 @@ export function CommunityPage() {
 
   return (
     <section>
-      <PageHeader title="Community" lead="Quizzes other people wrote and decided to share." />
+      <PageHeader title="Community" />
 
       {quizzes.isPending ? (
         <Loading label="Loading quizzes…" />

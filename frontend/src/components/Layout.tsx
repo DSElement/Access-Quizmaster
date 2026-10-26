@@ -36,9 +36,14 @@ export function Layout() {
               Community
             </NavLink>
             {user && (
-              <NavLink to="/attempts" className={navClass}>
-                Results
-              </NavLink>
+              <>
+                <NavLink to="/attempts" className={navClass}>
+                  Results
+                </NavLink>
+                <NavLink to="/documents" className={navClass}>
+                  Documents
+                </NavLink>
+              </>
             )}
             {isAdmin && (
               <NavLink to="/admin/users" className={navClass}>

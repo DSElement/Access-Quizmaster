@@ -23,7 +23,6 @@ export function QuizzesPage() {
     <section>
       <PageHeader
         title="Quizzes"
-        lead="Official quizzes made by the QuizMaster team, and the ones you write yourself."
         actions={
           <>
             {isAdmin && tab === 'official' && (

@@ -23,11 +23,13 @@ type RequestOptions = {
 }
 
 export async function api<T>(path: string, { method = 'GET', body, signal }: RequestOptions = {}): Promise<T> {
+  // FormData (file uploads) is sent as is: the browser sets the multipart Content-Type with its boundary.
+  const isForm = body instanceof FormData
   const response = await fetch(`/api${path}`, {
     method,
     signal,
-    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: body === undefined || isForm ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   })
 
   if (!response.ok) throw await toApiError(response)

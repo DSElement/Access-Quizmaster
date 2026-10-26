@@ -59,13 +59,30 @@ export type AttemptSummary = {
   scorePercentage: number
 }
 
+export type DocumentStatus = 'Pending' | 'Processing' | 'Ready' | 'Failed'
+
+export type DocumentSummary = {
+  id: string
+  fileName: string
+  contentType: string
+  sizeBytes: number
+  status: DocumentStatus
+  error: string | null
+  chunkCount: number
+  uploadedAt: string
+  processedAt: string | null
+}
+
+export type DocumentChunk = { id: string; index: number; text: string }
+
+export type ChunkMatch = { chunkId: string; index: number; text: string; similarity: number }
+
 export type AttemptDetail = AttemptSummary & {
   answers: {
     id: string
     questionText: string
     options: string[]
     selectedOptionIndex: number | null
-    correctOptionIndex: number
     wasCorrect: boolean
   }[]
 }

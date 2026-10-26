@@ -78,6 +78,6 @@ public class AttemptsController(AppDbContext db) : ControllerBase
         attempt.Answers
             .OrderBy(a => a.Position)
             .Select(a => new AttemptAnswerDetail(
-                a.Id, a.QuestionText, a.Options, a.SelectedOptionIndex, a.CorrectOptionIndex, a.WasCorrect))
+                a.Id, a.QuestionText, a.Options, a.SelectedOptionIndex, a.WasCorrect))
             .ToList());
 }

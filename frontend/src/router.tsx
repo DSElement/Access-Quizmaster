@@ -8,6 +8,8 @@ import { PlayPage } from './features/attempts/PlayPage'
 import { LoginPage } from './features/auth/LoginPage'
 import { RegisterPage } from './features/auth/RegisterPage'
 import { RequireAuth } from './features/auth/RequireAuth'
+import { DocumentPage } from './features/documents/DocumentPage'
+import { DocumentsPage } from './features/documents/DocumentsPage'
 import { CommunityPage } from './features/quizzes/CommunityPage'
 import { QuizDetailPage } from './features/quizzes/QuizDetailPage'
 import { QuizEditorPage } from './features/quizzes/QuizEditorPage'
@@ -36,6 +38,8 @@ export const router = createBrowserRouter([
               { path: 'quizzes/:id/play', element: <PlayPage /> },
               { path: 'attempts', element: <AttemptsPage /> },
               { path: 'attempts/:id', element: <AttemptPage /> },
+              { path: 'documents', element: <DocumentsPage /> },
+              { path: 'documents/:id', element: <DocumentPage /> },
             ],
           },
           {

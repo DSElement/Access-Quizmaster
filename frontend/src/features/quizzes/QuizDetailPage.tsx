@@ -77,7 +77,7 @@ function QuizDetail({ quiz }: { quiz: QuizSummary }) {
         <Link to={`/quizzes/${quiz.id}/play`} className="button">
           {user ? 'Start the quiz' : 'Sign in to play'}
         </Link>
-        <span className={styles.playHint}>{plural(quiz.questionCount, 'question')}, no time limit.</span>
+        <span className={styles.playHint}>{plural(quiz.questionCount, 'question')}</span>
       </div>
 
       {(quiz.canEdit || quiz.canPublish || quiz.canDelete) && (

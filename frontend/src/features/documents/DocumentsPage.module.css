@@ -1,0 +1,105 @@
+.upload {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 36px;
+  padding: 20px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.uploadLabel {
+  font-weight: 600;
+}
+
+.uploadRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.fileInput {
+  flex: 1 1 260px;
+  min-width: 0;
+  color: var(--muted);
+}
+
+.fileInput::file-selector-button {
+  font: inherit;
+  font-weight: 600;
+  margin-right: 12px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.fileInput::file-selector-button:hover {
+  background: var(--surface-hover);
+  border-color: var(--text);
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.problem {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--danger);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+
+.list li {
+  border-bottom: 1px solid var(--border);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 2px 24px;
+  padding: 14px 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.row:hover {
+  background: var(--surface-hover);
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  grid-row: 2;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.status {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+}
+
+.error {
+  grid-column: 1 / -1;
+  font-size: 0.9rem;
+  color: var(--danger);
+}
