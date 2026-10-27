@@ -90,6 +90,7 @@ The cookie also carries the user's roles. Once a minute the API checks the cooki
 | DELETE | `/api/quizzes/{id}` | Owner / admin | Delete a quiz (past attempts are kept) |
 | POST | `/api/quizzes/{id}/publish` | Owner | Share the quiz in the Community feed |
 | POST | `/api/quizzes/{id}/unpublish` | Owner | Make the quiz private again |
+| POST | `/api/quizzes/{id}/make-official` | Admin (own quiz) | Turn your private or shared quiz into an official one; it no longer has an owner, so this can't be undone |
 | POST | `/api/quizzes/{id}/attempts` | Signed in | Submit answers in the order they were shown; the server grades them and saves the attempt in that order |
 | GET | `/api/attempts` | Signed in | Your past attempts, newest first |
 | GET | `/api/attempts/{id}` | Signed in | One of your attempts: each question, your answer and whether it was right |
@@ -114,6 +115,9 @@ Every quiz is **Official** (maintained by admins, no owner), **Private** (only i
 | Edit | The owner; admins for official quizzes |
 | Delete | Whoever can edit; admins can also remove community quizzes |
 | Publish / unpublish | Only the owner |
+| Make official | Admins, for quizzes they own |
+
+An official quiz never has an owner and every other quiz has one (the database enforces this). Making a quiz official therefore removes its owner: it leaves the admin's own quizzes, any admin can edit it, and it can't be made private again.
 
 A quiz you can't see returns `404`, one you can see but not change returns `403`. Answers are graded on the server, and the answer key is only sent to people who can edit the quiz. Results say whether each answer was right, but not which option was correct, so a quiz can't be learned by submitting it empty.
 
@@ -147,7 +151,7 @@ On a ready document's page you pick the number of questions and, optionally, a f
 
 The model also gets the document's name and the opening words of up to 15 chunks, so it knows what to search for. The instructions also ask for wrong options that are plausible (related terms from the same topic), all of the same kind and similar length, never a list of several answers in one option, and questions that don't refer to code or tables the player can't see. Text from the document is treated as data, not instructions. Answer options are shuffled, because models tend to put the right answer in the same position.
 
-The result is a draft: it opens in the quiz builder, where you check and edit it before saving. A saved quiz remembers its document and the chunk each question came from (deleting the document clears those links, the quiz stays). When saving, the API checks that the document is yours and that every cited chunk belongs to it.
+The result is a draft: it opens in the quiz builder, where you check and edit it before saving. Admins can tick "Save as an official quiz" to save it straight to the official quizzes. A saved quiz remembers its document and the chunk each question came from (deleting the document clears those links, the quiz stays). When saving, the API checks that the document is yours and that every cited chunk belongs to it.
 
 Limits protect the free tier: each user can generate 5 quizzes per 10 minutes (then `429`), a generation stops after 150 seconds (`504`), Gemini errors and failed generations return `502` (`503` if Gemini's rate limit is reached), and one request to the model is capped at 12 round trips. The per-user limit and the timeout are in the `QuizGeneration` section of `appsettings.json`; the round-trip cap is in `Program.cs`.
 

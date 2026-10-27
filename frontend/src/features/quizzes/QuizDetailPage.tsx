@@ -8,7 +8,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { formatDate, plural } from '../../lib/format'
 import { useAuth } from '../auth/useAuth'
 import { attemptKeys } from '../attempts/api'
-import { deleteQuiz, fetchQuiz, quizKeys, setPublished } from './api'
+import { deleteQuiz, fetchQuiz, makeOfficial, quizKeys, setPublished } from './api'
 import styles from './QuizDetailPage.module.css'
 
 export function QuizDetailPage() {
@@ -28,10 +28,20 @@ function QuizDetail({ quiz }: { quiz: QuizSummary }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [confirmingOfficial, setConfirmingOfficial] = useState(false)
 
   const publish = useMutation({
     mutationFn: (published: boolean) => setPublished(quiz.id, published),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: quizKeys.all }),
+  })
+
+  // One-way: the quiz loses its owner, so it moves from "Mine" to the official list.
+  const promote = useMutation({
+    mutationFn: () => makeOfficial(quiz.id),
+    onSuccess: () => {
+      setConfirmingOfficial(false)
+      return queryClient.invalidateQueries({ queryKey: quizKeys.all })
+    },
   })
 
   const remove = useMutation({
@@ -80,7 +90,7 @@ function QuizDetail({ quiz }: { quiz: QuizSummary }) {
         <span className={styles.playHint}>{plural(quiz.questionCount, 'question')}</span>
       </div>
 
-      {(quiz.canEdit || quiz.canPublish || quiz.canDelete) && (
+      {(quiz.canEdit || quiz.canPublish || quiz.canDelete || quiz.canMakeOfficial) && (
         <section className={styles.manage} aria-labelledby="manage-heading">
           <h2 id="manage-heading" className={styles.manageHeading}>
             Manage
@@ -110,6 +120,22 @@ function QuizDetail({ quiz }: { quiz: QuizSummary }) {
                 {isShared ? 'Make private' : 'Share with community'}
               </button>
             )}
+            {quiz.canMakeOfficial &&
+              (confirmingOfficial ? (
+                <span className={styles.confirm}>
+                  <span>Make official? You won't own it anymore, and this can't be undone.</span>
+                  <button type="button" onClick={() => promote.mutate()} disabled={promote.isPending}>
+                    {promote.isPending ? 'Saving…' : 'Yes, make official'}
+                  </button>
+                  <button type="button" className="secondary" onClick={() => setConfirmingOfficial(false)}>
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button type="button" className="secondary" onClick={() => setConfirmingOfficial(true)}>
+                  Make official
+                </button>
+              ))}
             {quiz.canDelete &&
               (confirmingDelete ? (
                 <span className={styles.confirm}>
@@ -129,6 +155,7 @@ function QuizDetail({ quiz }: { quiz: QuizSummary }) {
           </div>
 
           {publish.isError && <ErrorNote error={publish.error} />}
+          {promote.isError && <ErrorNote error={promote.error} />}
           {remove.isError && <ErrorNote error={remove.error} />}
         </section>
       )}

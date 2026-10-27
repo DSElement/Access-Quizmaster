@@ -13,7 +13,8 @@ public record QuizSummary(
     DateTime UpdatedAt,
     bool CanEdit,
     bool CanDelete,
-    bool CanPublish);
+    bool CanPublish,
+    bool CanMakeOfficial);
 
 public record PlayQuiz(Guid Id, string Title, IReadOnlyList<PlayQuestion> Questions);
 

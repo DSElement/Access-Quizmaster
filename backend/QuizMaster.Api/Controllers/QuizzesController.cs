@@ -86,6 +86,25 @@ public class QuizzesController(AppDbContext db) : ControllerBase
         return ToEditable(quiz);
     }
 
+    [HttpPost("{id:guid}/make-official")]
+    [Authorize(Policy = Policies.AdminOnly)]
+    public async Task<IActionResult> MakeQuizOfficial(
+        Guid id, CancellationToken cancellationToken)
+    {
+        var quiz = await db.Quizzes
+            .VisibleTo(User.GetUserId())
+            .FirstOrDefaultAsync(q => q.Id == id, cancellationToken);
+        if (quiz is null) return NotFound();
+        if (!User.CanMakeOfficial(quiz.OwnerId)) return Forbid();
+
+        quiz.Visibility = QuizVisibility.Official;
+        quiz.OwnerId = null;
+        quiz.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost]
     public Task<ActionResult<EditableQuiz>> Create(SaveQuizRequest request, CancellationToken cancellationToken) =>
         CreateQuiz(request, QuizVisibility.Private, User.RequireUserId(), cancellationToken);
@@ -188,7 +207,8 @@ public class QuizzesController(AppDbContext db) : ControllerBase
         row.CreatedAt, row.UpdatedAt,
         CanEdit: User.CanEditQuiz(row.OwnerId, row.Visibility),
         CanDelete: User.CanDeleteQuiz(row.OwnerId, row.Visibility),
-        CanPublish: User.CanPublishQuiz(row.OwnerId));
+        CanPublish: User.CanPublishQuiz(row.OwnerId),
+        CanMakeOfficial: User.CanMakeOfficial(row.OwnerId));
 
     private record QuizRow(
         Guid Id, string Title, string? Description, QuizVisibility Visibility, string? OwnerId,

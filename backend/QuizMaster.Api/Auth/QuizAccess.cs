@@ -22,6 +22,10 @@ public static class QuizAccess
     public static bool CanPublishQuiz(this ClaimsPrincipal user, string? ownerId) =>
         IsOwner(user, ownerId);
 
+    public static bool CanMakeOfficial(this ClaimsPrincipal user, string? ownerId) =>
+        IsOwner(user, ownerId) &&
+        user.IsInRole(Roles.Admin);
+
     private static bool IsOwner(ClaimsPrincipal user, string? ownerId) =>
         ownerId is not null && ownerId == user.GetUserId();
 }

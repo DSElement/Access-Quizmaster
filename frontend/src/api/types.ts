@@ -25,6 +25,7 @@ export type QuizSummary = {
   canEdit: boolean
   canDelete: boolean
   canPublish: boolean
+  canMakeOfficial: boolean
 }
 
 export type PlayQuiz = {

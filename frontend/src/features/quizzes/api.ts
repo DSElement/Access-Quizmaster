@@ -29,3 +29,5 @@ export const deleteQuiz = (id: string) => api<void>(`/quizzes/${id}`, { method: 
 
 export const setPublished = (id: string, published: boolean) =>
   api<void>(`/quizzes/${id}/${published ? 'publish' : 'unpublish'}`, { method: 'POST' })
+
+export const makeOfficial = (id: string) => api<void>(`/quizzes/${id}/make-official`, { method: 'POST' })
