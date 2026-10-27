@@ -118,6 +118,33 @@
   margin-top: 48px;
   padding-top: 20px;
   border-top: 1px dashed var(--border);
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+}
+
+.renameForm {
+  justify-self: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.extension {
+  font-family: var(--font-mono);
+  color: var(--muted);
+}
+
+.fullRow {
+  flex-basis: 100%;
+  margin: 0;
 }
 
 .confirm {

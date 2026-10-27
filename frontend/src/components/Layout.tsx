@@ -43,6 +43,9 @@ export function Layout() {
                 <NavLink to="/documents" className={navClass}>
                   Documents
                 </NavLink>
+                <NavLink to="/account" className={navClass}>
+                  Account
+                </NavLink>
               </>
             )}
             {isAdmin && (

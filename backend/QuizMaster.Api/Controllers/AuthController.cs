@@ -71,6 +71,27 @@ public class AuthController(UserManager<AppUser> userManager, SignInManager<AppU
         return user is null ? Unauthorized() : Ok(await ToMeResponse(user));
     }
 
+    [HttpPatch("me")]
+    [Authorize]
+    public async Task<ActionResult<MeResponse>> UpdateMe(UpdateProfileRequest request)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+
+        if (!User.IsInRole(Roles.Admin) && ReservedDisplayNames.IsReserved(request.DisplayName))
+        {
+            ModelState.AddModelError("displayName", ReservedDisplayNames.Message);
+            return ValidationProblem(ModelState);
+        }
+
+        user.DisplayName = request.DisplayName.Trim();
+
+        var result = await userManager.UpdateAsync(user);
+        if (!result.Succeeded) return IdentityProblem(result);
+
+        return Ok(await ToMeResponse(user));
+    }
+
     private async Task<MeResponse> ToMeResponse(AppUser user) =>
         new(user.Id, user.Email!, user.DisplayName, [.. await userManager.GetRolesAsync(user)]);
 

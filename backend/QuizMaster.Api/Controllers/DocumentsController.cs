@@ -108,6 +108,31 @@ public class DocumentsController(
         return CreatedAtAction(nameof(GetById), new { id = document.Id }, ToSummary(document));
     }
 
+    [HttpPatch("{id:guid}")]
+    public async Task<ActionResult<DocumentSummary>> Update(
+        Guid id, RenameDocumentRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.RequireUserId();
+
+        var document = await db.Documents
+            .FirstOrDefaultAsync(d => d.Id == id && d.OwnerId == userId, cancellationToken);
+
+        if (document is null) return NotFound();
+
+        var extension = Path.GetExtension(document.StoredFileName);
+        var fileName = request.Name.Trim() + extension;
+        if (fileName.Length > MaxFileNameLength)
+        {
+            ModelState.AddModelError("name", $"The name can be at most {MaxFileNameLength - extension.Length} characters.");
+            return ValidationProblem(ModelState);
+        }
+
+        document.FileName = fileName;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return ToSummary(document);
+    }
+
     [HttpGet("{id:guid}/chunks")]
     public async Task<ActionResult<List<DocumentChunkView>>> Chunks(Guid id, CancellationToken cancellationToken)
     {

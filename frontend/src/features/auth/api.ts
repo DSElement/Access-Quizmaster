@@ -3,6 +3,7 @@ import type { Me } from '../../api/types'
 
 export type LoginInput = { email: string; password: string; rememberMe: boolean }
 export type RegisterInput = { email: string; displayName: string; password: string }
+export type ProfileInput = { displayName: string }
 
 export async function fetchMe(signal?: AbortSignal): Promise<Me | null> {
   try {
@@ -18,3 +19,5 @@ export const login = (input: LoginInput) => api<Me>('/auth/login', { method: 'PO
 export const register = (input: RegisterInput) => api<Me>('/auth/register', { method: 'POST', body: input })
 
 export const logout = () => api<void>('/auth/logout', { method: 'POST' })
+
+export const updateProfile = (input: ProfileInput) => api<Me>('/auth/me', { method: 'PATCH', body: input })

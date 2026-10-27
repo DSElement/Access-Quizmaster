@@ -25,6 +25,12 @@ public record LoginRequest
     public bool RememberMe { get; init; }
 }
 
+public record UpdateProfileRequest
+{
+    [Required, StringLength(100, MinimumLength = 2)]
+    public string DisplayName { get; init; } = "";
+}
+
 public record MeResponse(string Id, string Email, string DisplayName, IReadOnlyList<string> Roles);
 
 public record AdminUserSummary(string Id, string Email, string DisplayName, IReadOnlyList<string> Roles);

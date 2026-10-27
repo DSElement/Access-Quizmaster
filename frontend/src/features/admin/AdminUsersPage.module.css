@@ -55,6 +55,20 @@
   text-align: right;
 }
 
+.rowActions,
+.confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.confirm {
+  font-weight: 600;
+  color: var(--danger);
+}
+
 .search {
   display: flex;
   align-items: center;

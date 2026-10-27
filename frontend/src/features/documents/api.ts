@@ -49,3 +49,15 @@ export const generateQuiz = (id: string, input: { questionCount: number; topic: 
   api<QuizDraft>(`/documents/${id}/generate-quiz`, { method: 'POST', body: input })
 
 export const deleteDocument = (id: string) => api<void>(`/documents/${id}`, { method: 'DELETE' })
+
+// Same as the file name column on the API (extension included).
+export const MAX_FILE_NAME_LENGTH = 255
+
+// The API keeps the original extension, so only the part before it is sent.
+export const renameDocument = (id: string, name: string) =>
+  api<DocumentSummary>(`/documents/${id}`, { method: 'PATCH', body: { name } })
+
+export function splitFileName(fileName: string) {
+  const dot = fileName.lastIndexOf('.')
+  return dot > 0 ? { name: fileName.slice(0, dot), extension: fileName.slice(dot) } : { name: fileName, extension: '' }
+}

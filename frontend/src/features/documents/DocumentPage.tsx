@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import { ApiError } from '../../api/client'
 import type { DocumentSummary } from '../../api/types'
 import { DocumentStatusBadge } from '../../components/Badge'
 import { ErrorNote, Loading } from '../../components/LoadState'
@@ -14,9 +15,12 @@ import {
   fetchDocument,
   generateQuiz,
   isIndexing,
+  MAX_FILE_NAME_LENGTH,
   POLL_INTERVAL_MS,
   QUESTION_COUNTS,
+  renameDocument,
   searchDocument,
+  splitFileName,
 } from './api'
 import styles from './DocumentPage.module.css'
 import { IndexingStatus } from './IndexingStatus'
@@ -90,6 +94,7 @@ function DocumentDetail({ document }: { document: DocumentSummary }) {
       )}
 
       <section className={styles.manage} aria-label="Manage">
+        <RenameDocument document={document} />
         {confirmingDelete ? (
           <span className={styles.confirm}>
             <span>Delete the document and its chunks?</span>
@@ -108,6 +113,78 @@ function DocumentDetail({ document }: { document: DocumentSummary }) {
         {remove.isError && <ErrorNote error={remove.error} />}
       </section>
     </article>
+  )
+}
+
+function RenameDocument({ document }: { document: DocumentSummary }) {
+  const queryClient = useQueryClient()
+  const { name, extension } = splitFileName(document.fileName)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(name)
+
+  const rename = useMutation({
+    mutationFn: (next: string) => renameDocument(document.id, next),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(documentKeys.detail(document.id), updated)
+      setEditing(false)
+      return queryClient.invalidateQueries({ queryKey: documentKeys.list })
+    },
+  })
+
+  // A validation error comes back on the "name" field; anything else falls back to the general message.
+  const errorMessage =
+    rename.error instanceof ApiError
+      ? (rename.error.fieldErrors.name?.join(' ') ?? rename.error.message)
+      : rename.error?.message
+
+  function start() {
+    setDraft(name)
+    rename.reset()
+    setEditing(true)
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault()
+    rename.mutate(draft.trim())
+  }
+
+  if (!editing) {
+    return (
+      <button type="button" className="secondary" onClick={start}>
+        Rename
+      </button>
+    )
+  }
+
+  const unchanged = draft.trim() === name
+
+  return (
+    <form className={styles.renameForm} onSubmit={submit}>
+      <label className={`${styles.field} ${styles.grow}`}>
+        <span className={styles.fieldLabel}>New name</span>
+        <span className={styles.nameRow}>
+          <input
+            className={`${styles.input} ${styles.grow}`}
+            value={draft}
+            maxLength={MAX_FILE_NAME_LENGTH - extension.length}
+            onChange={(event) => setDraft(event.target.value)}
+            autoFocus
+          />
+          {extension && <span className={styles.extension}>{extension}</span>}
+        </span>
+      </label>
+      <button type="submit" disabled={!draft.trim() || unchanged || rename.isPending}>
+        {rename.isPending ? 'Saving…' : 'Save name'}
+      </button>
+      <button type="button" className="secondary" onClick={() => setEditing(false)}>
+        Cancel
+      </button>
+      {errorMessage && (
+        <p role="alert" className={`${styles.failed} ${styles.fullRow}`}>
+          {errorMessage}
+        </p>
+      )}
+    </form>
   )
 }
 

@@ -11,3 +11,5 @@ export const fetchUsers = (search: string, signal?: AbortSignal) =>
 
 export const promoteUser = (id: string) =>
   api<void>(`/admin/users/${encodeURIComponent(id)}/promote`, { method: 'POST' })
+
+export const deleteUser = (id: string) => api<void>(`/admin/users/${encodeURIComponent(id)}`, { method: 'DELETE' })

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using QuizMaster.Api.Models;
 using QuizMaster.Api.Services.Documents;
 
@@ -16,3 +17,7 @@ public record DocumentSummary(
     IndexingStep? Progress);
 
 public record DocumentChunkView(Guid Id, int Index, string Text);
+
+public record RenameDocumentRequest(
+    [Required, StringLength(255)]
+    string Name);

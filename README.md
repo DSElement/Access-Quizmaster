@@ -58,8 +58,9 @@ Open <http://localhost:5173>. The Vite dev server forwards every `/api` request 
 | Quiz details, play, edit | `/quizzes/{id}`, `/quizzes/{id}/play`, `/quizzes/{id}/edit` |
 | Write a quiz (admins: `?official=true`) | `/quizzes/new` |
 | Your results | `/attempts`, `/attempts/{id}` |
-| Your documents: upload, generate a quiz, search, chunks | `/documents`, `/documents/{id}` |
-| Manage users (admin) | `/admin/users` |
+| Your documents: upload, rename, generate a quiz, search, chunks | `/documents`, `/documents/{id}` |
+| Your account: change your display name | `/account` |
+| Manage users (admin): promote, delete | `/admin/users` |
 
 On startup the API creates the `Admin` and `User` roles and, if it doesn't exist yet, the admin account `admin@quizmaster.local` (configured in `appsettings.Development.json`). Passwords need at least 8 characters with an uppercase letter, a lowercase letter, a digit and a symbol. Changing the secret later does not change an existing admin's password.
 
@@ -67,42 +68,22 @@ On startup the API creates the `Admin` and `User` roles and, if it doesn't exist
 
 Accounts use ASP.NET Core Identity with cookie authentication. Signing in sets an `HttpOnly`, `SameSite=Strict` cookie that the browser sends with every request; there are no tokens to store in JavaScript. Every endpoint requires a signed-in user unless it is explicitly marked anonymous.
 
-Display names are unique, ignoring upper/lower case and surrounding spaces (like emails, a normalized copy is stored with a unique index). They also can't contain "admin" in any spelling (`ADMIN`, `4dm1n`, `a.d.m.i.n`, accented or full-width letters), so nobody can pass for the admin account.
+Display names are unique, ignoring upper/lower case and surrounding spaces (like emails, a normalized copy is stored with a unique index). They also can't contain "admin" in any spelling (`ADMIN`, `4dm1n`, `a.d.m.i.n`, accented or full-width letters), so nobody can pass for the admin account. Users can change their display name on the Account page under the same rules; admins are exempt from the "admin" rule (the seeded account is called "Admin").
 
 The cookie also carries the user's roles. Once a minute the API checks the cookie against the database and reissues it, so a role change reaches a signed-in user within about a minute without them signing in again.
 
 ## API
 
-| Method | Route | Access | Description |
-|---|---|---|---|
-| GET | `/api/health` | Anyone | Health check, including the database connection |
-| POST | `/api/auth/register` | Anyone | Create an account and sign in |
-| POST | `/api/auth/login` | Anyone | Sign in (sets the auth cookie) |
-| POST | `/api/auth/logout` | Anyone | Sign out (clears the auth cookie) |
-| GET | `/api/auth/me` | Signed in | The current user and their roles |
-| GET | `/api/quizzes?scope=` | Anyone | Quizzes you can see; optional `scope` is `official`, `mine` (signed in) or `community` |
-| GET | `/api/quizzes/{id}` | Anyone | Quiz details and what you're allowed to do with it (no questions) |
-| GET | `/api/quizzes/{id}/play` | Signed in | Questions and options to play (no answer key); the frontend shuffles the question order |
-| GET | `/api/quizzes/{id}/edit` | Owner / admin | Full quiz including the correct answers, for the editor |
-| POST | `/api/quizzes` | Signed in | Create a quiz (starts private) |
-| POST | `/api/quizzes/official` | Admin | Create an official quiz |
-| PUT | `/api/quizzes/{id}` | Owner / admin | Replace the title, description and all questions |
-| DELETE | `/api/quizzes/{id}` | Owner / admin | Delete a quiz (past attempts are kept) |
-| POST | `/api/quizzes/{id}/publish` | Owner | Share the quiz in the Community feed |
-| POST | `/api/quizzes/{id}/unpublish` | Owner | Make the quiz private again |
-| POST | `/api/quizzes/{id}/make-official` | Admin (own quiz) | Turn your private or shared quiz into an official one; it no longer has an owner, so this can't be undone |
-| POST | `/api/quizzes/{id}/attempts` | Signed in | Submit answers in the order they were shown; the server grades them and saves the attempt in that order |
-| GET | `/api/attempts` | Signed in | Your past attempts, newest first |
-| GET | `/api/attempts/{id}` | Signed in | One of your attempts: each question, your answer and whether it was right |
-| GET | `/api/documents` | Signed in | Your documents with their indexing status, newest first |
-| GET | `/api/documents/{id}` | Owner | One document's status (the frontend polls this while it's being indexed) |
-| POST | `/api/documents` | Signed in | Upload a PDF, Markdown or text file (multipart field `file`, up to 10 MB); indexing runs in the background |
-| GET | `/api/documents/{id}/chunks` | Owner | The text chunks the document was split into |
-| GET | `/api/documents/{id}/search?q=&top=` | Owner | The chunks most similar to a question (default 5, at most 10) |
-| POST | `/api/documents/{id}/generate-quiz` | Owner | Have AI write a quiz draft from the document (`questionCount` 3 to 15, optional `topic`); nothing is saved |
-| DELETE | `/api/documents/{id}` | Owner | Delete the document, its chunks and the stored file |
-| GET | `/api/admin/users?search=` | Admin | Accounts with their roles; optional `search` matches display name or email |
-| POST | `/api/admin/users/{id}/promote` | Admin | Give an account the Admin role |
+Every route starts with `/api` and needs a signed-in user unless it says otherwise. The full list of endpoints, with their parameters and request and response shapes, is in Scalar at <http://localhost:5080/scalar> while the API runs in Development, where you can also try them out.
+
+| Area | What it covers | Who |
+|---|---|---|
+| `/api/health` | Health check, including the database connection | Anyone |
+| `/api/auth` | Register, sign in, sign out; read your account and change your display name (`me`) | Anyone, except `me` |
+| `/api/quizzes` | List (`scope`: `official`, `mine`, `community`), details, play (no answer key), edit, create, update, delete, publish, make official | See [Quizzes and permissions](#quizzes-and-permissions) |
+| `/api/quizzes/{id}/attempts`, `/api/attempts` | Submit answers to be graded; your past results | Only your own results |
+| `/api/documents` | Upload, list, rename, chunks, search, generate a quiz draft, delete | Only the owner |
+| `/api/admin/users` | Search accounts, promote to admin, delete a non-admin account with everything it owns | Admins |
 
 ## Quizzes and permissions
 
@@ -125,7 +106,7 @@ Each attempt stores a copy of the questions and options as they were when you pl
 
 ## Documents and search
 
-Documents are private: only their owner can see, search or delete them, and anyone else gets `404`. The upload checks the extension, the size and the first bytes of the file (a PDF must start with `%PDF-`). The file is stored under `backend/QuizMaster.Api/App_Data/documents` with a generated name, never the uploaded one.
+Documents are private: only their owner can see, rename, search or delete them, and anyone else gets `404`. The upload checks the extension, the size and the first bytes of the file (a PDF must start with `%PDF-`). The file is stored under `backend/QuizMaster.Api/App_Data/documents` with a generated name, never the uploaded one, so renaming a document only changes the name shown and the file on disk stays as it is.
 
 A background worker indexes one document at a time:
 

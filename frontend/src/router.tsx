@@ -5,6 +5,7 @@ import { AdminUsersPage } from './features/admin/AdminUsersPage'
 import { AttemptPage } from './features/attempts/AttemptPage'
 import { AttemptsPage } from './features/attempts/AttemptsPage'
 import { PlayPage } from './features/attempts/PlayPage'
+import { AccountPage } from './features/auth/AccountPage'
 import { LoginPage } from './features/auth/LoginPage'
 import { RegisterPage } from './features/auth/RegisterPage'
 import { RequireAuth } from './features/auth/RequireAuth'
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
               { path: 'quizzes/new', element: <QuizEditorPage /> },
               { path: 'quizzes/:id/edit', element: <QuizEditorPage /> },
               { path: 'quizzes/:id/play', element: <PlayPage /> },
+              { path: 'account', element: <AccountPage /> },
               { path: 'attempts', element: <AttemptsPage /> },
               { path: 'attempts/:id', element: <AttemptPage /> },
               { path: 'documents', element: <DocumentsPage /> },
